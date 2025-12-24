@@ -1,134 +1,89 @@
 import { prisma } from "./lib/prisma";
+import { TrendingUp, Users, Briefcase, ArrowUpRight, Clock, PlusCircle } from "lucide-react";
 import Link from "next/link";
-import { 
-  Briefcase, 
-  Users, 
-  TrendingUp, 
-  ArrowRight,
-  Activity
-} from "lucide-react";
 
-export default async function Home() {
-  // 1. Récupération des données réelles depuis la BDD
-  
-  // Compter les projets qui ne sont pas "Terminés"
-  const activeProjects = await prisma.project.count({
-    where: {
-      status: {
-        not: "DONE" 
-      }
-    }
-  });
-
-  // Compter les membres de l'équipe (Table User)
-  const teamCount = await prisma.user.count();
-
-  // Calculer le Chiffre d'Affaires (Somme des factures 'PAID')
-  // Note: Comme on n'a pas encore de factures payées, ça sera 0, c'est normal.
-  const paidInvoices = await prisma.invoice.findMany({
-    where: { status: "PAID" }
-  });
-  
-  // On additionne les montants
-  const totalRevenue = paidInvoices.reduce((acc, inv) => acc + inv.totalHT, 0);
-
-  // Pour la trésorerie (en attendant d'avoir des dépenses), on affiche le CA en attente
-  const pendingInvoices = await prisma.invoice.findMany({
-    where: { status: "SENT" }
-  });
-  const pendingRevenue = pendingInvoices.reduce((acc, inv) => acc + inv.totalHT, 0);
+export default async function Dashboard() {
+  const [totalInvoices, projectCount, clientCount, recentProjects] = await Promise.all([
+    prisma.invoice.aggregate({ _sum: { totalHT: true } }),
+    prisma.project.count(),
+    prisma.client.count(),
+    prisma.project.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      include: { client: true }
+    })
+  ]);
 
   return (
-    <div className="space-y-8 fade-in">
-      
-      {/* EN-TÊTE */}
-      <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Tableau de Bord</h1>
-        <p className="text-gray-400 mt-1">Vue d'ensemble et indicateurs clés</p>
-      </div>
-
-      {/* CARTES KPI */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div style={{ backgroundColor: '#0A0A0B', minHeight: '100vh', padding: '40px', color: 'white' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         
-        {/* CARTE 1 : CHIFFRE D'AFFAIRES */}
-        <div className="bg-[#141416] p-6 rounded-2xl border border-white/5 relative group hover:border-blue-600/50 transition-all">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Chiffre d'Affaires</p>
-              <h3 className="text-3xl font-bold text-white mt-2">{totalRevenue.toLocaleString()} €</h3>
-            </div>
-            <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl">
-              <TrendingUp size={24} />
-            </div>
+        {/* HEADER */}
+        <header style={{ marginBottom: '50px' }}>
+          <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '-2px', margin: 0 }}>Tableau de bord</h1>
+          <p style={{ color: '#64748b', fontSize: '18px', marginTop: '10px' }}>Collectif Cobalt — Gestion en temps réel</p>
+        </header>
+
+        {/* STATS CARDS */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', marginBottom: '50px' }}>
+          
+          <div style={{ backgroundColor: '#141416', padding: '40px', borderRadius: '32px', border: '1px solid #1f2937' }}>
+            <div style={{ color: '#10b981', marginBottom: '20px' }}><TrendingUp size={32} /></div>
+            <p style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px' }}>Chiffre d'Affaires</p>
+            <h3 style={{ fontSize: '36px', fontWeight: '900', marginTop: '10px' }}>{(totalInvoices._sum.totalHT || 0).toLocaleString()} €</h3>
           </div>
-          <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-            <div className="bg-blue-600 h-full w-1/3"></div>
+
+          <div style={{ backgroundColor: '#141416', padding: '40px', borderRadius: '32px', border: '1px solid #1f2937' }}>
+            <div style={{ color: '#3b82f6', marginBottom: '20px' }}><Briefcase size={32} /></div>
+            <p style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px' }}>Projets Actifs</p>
+            <h3 style={{ fontSize: '36px', fontWeight: '900', marginTop: '10px' }}>{projectCount}</h3>
           </div>
-          <Link href="/finance" className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-white">
-            <ArrowRight size={20} />
-          </Link>
+
+          <div style={{ backgroundColor: '#141416', padding: '40px', borderRadius: '32px', border: '1px solid #1f2937' }}>
+            <div style={{ color: '#a855f7', marginBottom: '20px' }}><Users size={32} /></div>
+            <p style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px' }}>Clients Totaux</p>
+            <h3 style={{ fontSize: '36px', fontWeight: '900', marginTop: '10px' }}>{clientCount}</h3>
+          </div>
+
         </div>
 
-        {/* CARTE 2 : PROJETS EN COURS */}
-        <div className="bg-[#141416] p-6 rounded-2xl border border-white/5 relative group hover:border-emerald-600/50 transition-all">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Projets en cours</p>
-              <h3 className="text-3xl font-bold text-white mt-2">{activeProjects}</h3>
+        {/* MAIN GRID */}
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px' }}>
+          
+          {/* RECENT ACTIVITY */}
+          <div style={{ backgroundColor: '#141416', padding: '40px', borderRadius: '32px', border: '1px solid #1f2937' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}><Clock size={20} /> Activité récente</h3>
+              <Link href="/projects" style={{ color: '#6366f1', fontSize: '12px', fontWeight: 'bold', textDecoration: 'none' }}>VOIR TOUT →</Link>
             </div>
-            <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl">
-              <Briefcase size={24} />
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {recentProjects.map((p) => (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '20px', backgroundColor: '#1c1c1f', borderRadius: '20px' }}>
+                  <div>
+                    <p style={{ fontWeight: 'bold', margin: 0 }}>{p.title}</p>
+                    <p style={{ color: '#64748b', fontSize: '12px', margin: '5px 0 0 0' }}>{p.client?.name || "Projet interne"}</p>
+                  </div>
+                  <span style={{ fontSize: '10px', backgroundColor: '#312e81', color: '#a5b4fc', padding: '5px 10px', borderRadius: '8px', fontWeight: 'bold' }}>{p.status}</span>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-            <div className="bg-emerald-500 h-full w-2/3"></div>
-          </div>
-          <Link href="/projects" className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-white">
-            <ArrowRight size={20} />
-          </Link>
-        </div>
 
-        {/* CARTE 3 : TRÉSORERIE (EN ATTENTE) */}
-        <div className="bg-[#141416] p-6 rounded-2xl border border-white/5 relative group hover:border-purple-600/50 transition-all">
-          <div className="flex justify-between items-start mb-4">
+          {/* QUICK ACTIONS */}
+          <div style={{ backgroundColor: '#4f46e5', padding: '40px', borderRadius: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">En attente (Factures)</p>
-              <h3 className="text-3xl font-bold text-white mt-2">{pendingRevenue.toLocaleString()} €</h3>
+              <h3 style={{ fontSize: '32px', fontWeight: '900', lineHeight: '1' }}>Nouvelle mission ?</h3>
+              <p style={{ marginTop: '15px', opacity: '0.8', fontSize: '14px' }}>Gérez vos clients et vos factures en un clic.</p>
             </div>
-            <div className="p-3 bg-purple-500/10 text-purple-500 rounded-xl">
-              <Activity size={24} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '30px' }}>
+              <Link href="/crm" style={{ backgroundColor: 'white', color: '#4f46e5', textAlign: 'center', padding: '15px', borderRadius: '15px', fontWeight: 'bold', textDecoration: 'none' }}>Nouveau Client</Link>
+              <Link href="/finance" style={{ backgroundColor: '#4338ca', color: 'white', textAlign: 'center', padding: '15px', borderRadius: '15px', fontWeight: 'bold', textDecoration: 'none', border: '1px solid #6366f1' }}>Générer Facture</Link>
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-4">Flux financier à venir</p>
-        </div>
 
-        {/* CARTE 4 : ÉQUIPE */}
-        <div className="bg-[#141416] p-6 rounded-2xl border border-white/5 relative group hover:border-orange-600/50 transition-all">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Équipe</p>
-              <h3 className="text-3xl font-bold text-white mt-2">{teamCount}</h3>
-            </div>
-            <div className="p-3 bg-orange-500/10 text-orange-500 rounded-xl">
-              <Users size={24} />
-            </div>
-          </div>
-          <div className="flex -space-x-2 mt-2">
-            {/* On simule des avatars pour le style, plus tard on affichera les vrais */}
-            <div className="w-8 h-8 rounded-full bg-blue-500 border-2 border-[#141416]"></div>
-            <div className="w-8 h-8 rounded-full bg-purple-500 border-2 border-[#141416]"></div>
-            <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-[#141416] flex items-center justify-center text-[10px] text-white font-bold">+</div>
-          </div>
         </div>
-
       </div>
-
-      {/* ZONE CENTRALE (GRAPHIQUE VIDE) */}
-      <div className="bg-[#0F0F11] border border-white/5 rounded-3xl h-64 flex flex-col items-center justify-center text-center p-8 border-dashed">
-         <Activity className="text-gray-700 w-12 h-12 mb-4" />
-         <p className="text-gray-500 font-medium">Le graphique de performance arrivera en V2</p>
-      </div>
-
     </div>
   );
 }
