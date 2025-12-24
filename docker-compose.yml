@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: cobalt_db_local
+    restart: always
+    environment:
+      POSTGRES_USER: cobalt_user
+      POSTGRES_PASSWORD: cobalt_password_secure
+      POSTGRES_DB: cobalt_os
+    ports:
+      - "5432:5432" # On ouvre le port pour que ton Next.js puisse lui parler
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
