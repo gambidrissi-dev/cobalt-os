@@ -13,14 +13,14 @@ model User {
   email     String   @unique
   name      String
   role      String   // admin, media, archi
-  password  String   // On ajoutera le hash plus tard
+  password  String   
 }
 
 // 2. CLIENTS (CRM)
 model Client {
   id        String    @id @default(cuid())
   name      String
-  type      String    // Grand Compte, PME, Asso...
+  type      String    
   email     String?
   phone     String?
   address   String?
@@ -28,27 +28,37 @@ model Client {
   invoices  Invoice[]
 }
 
-// 3. PROJETS & TÂCHES
+// 3. PROJETS & TÂCHES (Version Cockpit Deep Dive)
 model Project {
-  id          String   @id @default(cuid())
-  title       String
-  type        String   // media, archi
-  status      String   @default("TODO") // TODO, IN_PROGRESS, DONE
-  value       Float    @default(0)
-  description String?
-  dueDate     DateTime?
-  createdAt   DateTime @default(now())
+  id           String    @id @default(cuid())
+  title        String
+  type         String    
+  status       String    @default("TODO") 
+  priority     String    @default("MEDIUM")
   
-  clientId    String?
-  client      Client?  @relation(fields: [clientId], references: [id])
-  tasks       Task[]
+  // Personnalisation V2
+  value        Float     @default(0)
+  budget       Float     @default(0)
+  description  String?   
+  notes        String?   
+  driveLink    String?   
+  
+  dueDate      DateTime?
+  createdAt    DateTime  @default(now())
+  // Correction pour la migration : valeur par défaut ajoutée
+  updatedAt    DateTime  @default(now()) @updatedAt 
+  
+  clientId     String?
+  client       Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  tasks        Task[]
 }
 
 model Task {
   id          String   @id @default(cuid())
   title       String
   done        Boolean  @default(false)
-  timeSpent   Int      @default(0) // En minutes
+  timeSpent   Int      @default(0) 
   timerActive Boolean  @default(false)
   
   projectId   String
@@ -58,13 +68,14 @@ model Task {
 // 4. FINANCE (Factures & Catalogue)
 model Invoice {
   id        String   @id @default(cuid())
-  number    String   @unique // ex: FAC-2024-001
-  status    String   @default("DRAFT") // DRAFT, SENT, PAID
+  number    String   @unique 
+  status    String   @default("DRAFT") 
   date      DateTime @default(now())
+  dueDate   DateTime 
   totalHT   Float    @default(0)
   
   clientId  String
-  client    Client   @relation(fields: [clientId], references: [id])
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   items     InvoiceItem[]
 }
 
@@ -82,17 +93,17 @@ model Service {
   id          String @id @default(cuid())
   name        String
   price       Float
-  unit        String // Jour, Forfait...
-  category    String // Archi, Media...
+  unit        String 
+  category    String 
   description String?
 }
 
 // 5. MATÉRIEL (Inventaire)
 model InventoryItem {
-  id          String  @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   category    String
-  status      String  @default("AVAILABLE") // AVAILABLE, BORROWED
-  borrower    String? // Qui l'a pris ?
+  status      String    @default("AVAILABLE") 
+  borrower    String?   
   returnDate  DateTime?
 }

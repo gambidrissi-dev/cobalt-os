@@ -2,13 +2,22 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Briefcase, DollarSign, Settings, FolderKanban } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  Users, 
+  Briefcase, 
+  DollarSign, 
+  Settings, 
+  FolderKanban, 
+  Package // AJOUT : Icône pour l'inventaire
+} from 'lucide-react';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Tableau de bord', href: '/' },
   { icon: FolderKanban, label: 'Projets', href: '/projects' },
   { icon: Users, label: 'Ressources Humaines', href: '/hr' },
   { icon: Briefcase, label: 'CRM & Ventes', href: '/crm' },
+  { icon: Package, label: 'Inventaire', href: '/inventory' }, // AJOUT DU LIEN
   { icon: DollarSign, label: 'Finance', href: '/finance' },
   { icon: Settings, label: 'Paramètres', href: '/settings' },
 ];
@@ -17,7 +26,6 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    // ZERO positionnement ici ("fixed" ou "h-screen" interdits ici)
     <div className="w-64 h-full bg-[#0A0A0C] border-r border-white/5 flex flex-col">
       <div className="p-6">
          <div className="font-bold text-xl text-white tracking-tighter flex items-center gap-2">

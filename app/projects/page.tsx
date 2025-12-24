@@ -3,13 +3,14 @@ import { revalidatePath } from "next/cache";
 import { Plus, Briefcase, Building } from "lucide-react";
 import { deleteProject } from "../../app/actions";
 import { DeleteButton } from "../../components/DeleteButton";
+import Link from "next/link"; // IMPORT AJOUTÉ
 
 // --- ACTION SERVEUR ---
 async function createProject(formData: FormData) {
   "use server";
   const title = formData.get("title") as string;
   const value = parseFloat(formData.get("value") as string) || 0;
-  const type = formData.get("type") as string; // <--- ON RÉCUPÈRE LE TYPE ICI
+  const type = formData.get("type") as string;
 
   if (!title) return;
 
@@ -17,7 +18,7 @@ async function createProject(formData: FormData) {
     data: {
       title,
       value,
-      type: type || "media", // <--- ON L'ENVOIE À LA BDD (par défaut 'media')
+      type: type || "media",
       status: "TODO",
     },
   });
@@ -26,9 +27,10 @@ async function createProject(formData: FormData) {
 }
 
 export default async function ProjectsPage() {
-  const projects = await prisma.project.findMany();
+  const projects = await prisma.project.findMany({
+    orderBy: { createdAt: 'desc' }
+  });
 
-  // On trie les projets par statut
   const todo = projects.filter((p) => p.status === "TODO");
   const inProgress = projects.filter((p) => p.status === "IN_PROGRESS");
   const done = projects.filter((p) => p.status === "DONE");
@@ -43,11 +45,8 @@ export default async function ProjectsPage() {
           <p className="text-gray-400">Suivi des missions Média & Archi</p>
         </div>
 
-        {/* --- FORMULAIRE RÉPARÉ --- */}
         <div className="bg-[#141416] p-2 rounded-xl border border-white/10 w-full xl:w-auto">
             <form action={createProject} className="flex flex-col md:flex-row gap-2">
-            
-            {/* Input Titre */}
             <input 
                 name="title" 
                 type="text" 
@@ -55,28 +54,21 @@ export default async function ProjectsPage() {
                 required
                 className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none w-full md:w-48"
             />
-
-            {/* Input Prix */}
             <input 
                 name="value" 
                 type="number" 
                 placeholder="Prix €" 
                 className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none w-full md:w-24"
             />
-
-            {/* Select Type (NOUVEAU) */}
             <select name="type" className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none cursor-pointer">
                 <option value="media" className="bg-black text-white">Média</option>
                 <option value="archi" className="bg-black text-white">Archi</option>
             </select>
-
-            {/* Bouton */}
             <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2">
                 <Plus size={16} /> Ajouter
             </button>
             </form>
         </div>
-        {/* ------------------------- */}
       </div>
 
       {/* LE KANBAN */}
@@ -117,43 +109,48 @@ export default async function ProjectsPage() {
              {done.length === 0 && <EmptyState />}
           </div>
         </div>
-
       </div>
     </div>
   );
 }
 
-// --- CARTE PROJET ---
+// --- CARTE PROJET MODIFIÉE (LIEN VERS COCKPIT) ---
 function ProjectCard({ project, color }: { project: any, color: string }) {
   return (
-    <div className={`bg-[#141416] p-4 rounded-xl border border-white/5 hover:border-white/20 transition-all group ${color} border-l-4 shadow-sm relative`}>
-      <div className="flex justify-between items-start mb-2">
-        {/* Badge Type */}
-        <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${
-            project.type === 'archi' 
-            ? 'text-orange-400 border-orange-400/20 bg-orange-400/10' 
-            : 'text-purple-400 border-purple-400/20 bg-purple-400/10'
-        }`}>
-            {project.type === 'archi' ? 'Archi' : 'Média'}
-        </span>
-        
-        {/* LA GOMME : Placée à côté du montant */}
-        <div className="flex items-center gap-2">
-           <span className="text-sm font-bold text-white">{project.value.toLocaleString()} €</span>
-           <DeleteButton id={project.id} action={deleteProject} />
+    <div className="relative group">
+      {/* On entoure la carte d'un lien dynamique */}
+      <Link href={`/projects/${project.id}`} className="block no-underline">
+        <div className={`bg-[#141416] p-4 rounded-xl border border-white/5 hover:border-blue-500/50 hover:bg-[#1c1c1f] transition-all ${color} border-l-4 shadow-sm`}>
+          <div className="flex justify-between items-start mb-2">
+            <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${
+                project.type === 'archi' 
+                ? 'text-orange-400 border-orange-400/20 bg-orange-400/10' 
+                : 'text-purple-400 border-purple-400/20 bg-purple-400/10'
+            }`}>
+                {project.type === 'archi' ? 'Archi' : 'Média'}
+            </span>
+            <span className="text-sm font-bold text-white">{project.value.toLocaleString()} €</span>
+          </div>
+          
+          <h3 className="font-medium text-white group-hover:text-blue-400 transition-colors leading-tight">
+            {project.title}
+          </h3>
+          
+          <div className="flex justify-between items-center mt-4 pt-3 border-t border-white/5">
+            <span className="text-[10px] text-gray-500 font-mono">#{project.id.slice(-4)}</span>
+            <span className="text-[10px] text-blue-500 font-bold opacity-0 group-hover:opacity-100 transition-opacity">OUVRIR →</span>
+          </div>
         </div>
-      </div>
+      </Link>
       
-      <h3 className="font-medium text-white group-hover:text-blue-400 transition-colors leading-tight">
-        {project.title}
-      </h3>
-      
-      <div className="flex justify-between items-center mt-4 pt-3 border-t border-white/5">
-        <span className="text-[10px] text-gray-500 font-mono">#{project.id.slice(-4)}</span>
+      {/* Bouton supprimer reste en dehors du lien pour éviter les conflits de clic */}
+      <div className="absolute right-3 bottom-3">
+         <DeleteButton id={project.id} action={deleteProject} />
       </div>
     </div>
   );
 }
+
 function EmptyState() {
   return (
     <div className="h-24 rounded-xl border border-dashed border-white/5 bg-white/[0.02] flex items-center justify-center text-gray-600 text-xs">

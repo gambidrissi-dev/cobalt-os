@@ -1,47 +1,110 @@
 import { prisma } from "../lib/prisma";
-import { createUser } from "@/app/actions"; // Import de l'action
-import { UserPlus, Mail, Shield, User as UserIcon } from "lucide-react";
+import { createUser } from "@/app/actions";
+import { UserPlus, Mail, Shield, Users, Arches, Camera } from "lucide-react";
 
 export default async function HRPage() {
   const team = await prisma.user.findMany({ orderBy: { name: 'asc' } });
 
+  // Statistiques rapides
+  const totalMembers = team.length;
+  const admins = team.filter(u => u.role === 'admin').length;
+  const experts = team.length - admins;
+
   return (
-    <div className="space-y-8 fade-in">
-      <div>
-         <h1 className="text-3xl font-bold text-white tracking-tight">Ressources Humaines</h1>
-         <p className="text-gray-400">Gestion de l'équipe</p>
-      </div>
-
-      {/* --- FORMULAIRE AJOUT MEMBRE --- */}
-      <div className="bg-[#141416] p-4 rounded-xl border border-white/10">
-        <form action={createUser} className="flex flex-col md:flex-row gap-3">
-          <input name="name" type="text" placeholder="Prénom Nom" required className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-purple-500 outline-none flex-1" />
-          <input name="email" type="email" placeholder="Email pro" required className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-purple-500 outline-none flex-1" />
-          <select name="role" className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none">
-            <option value="membre" className="bg-black">Membre</option>
-            <option value="admin" className="bg-black">Admin</option>
-          </select>
-          <button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">
-            + Ajouter
-          </button>
-        </form>
-      </div>
-      {/* ------------------------------- */}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {team.map((user) => (
-          <div key={user.id} className="bg-[#141416] p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
-            <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                  {user.name.charAt(0)}
-               </div>
-               <div>
-                  <h3 className="font-bold text-white text-lg">{user.name}</h3>
-                  <span className="text-xs text-gray-400 capitalize">{user.role}</span>
-               </div>
+    <div style={{ backgroundColor: '#0A0A0B', minHeight: '100vh', padding: '40px', color: 'white' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        
+        {/* HEADER & STATS */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '50px' }}>
+          <div>
+            <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '-2px', margin: 0 }}>Ressources Humaines</h1>
+            <p style={{ color: '#64748b', fontSize: '18px', marginTop: '10px' }}>Effectif et talents du collectif Cobalt</p>
+          </div>
+          <div style={{ display: 'flex', gap: '20px' }}>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ color: '#64748b', fontSize: '12px', fontWeight: 'bold', margin: 0 }}>TOTAL</p>
+              <h4 style={{ fontSize: '24px', fontWeight: '900', margin: 0 }}>{totalMembers}</h4>
+            </div>
+            <div style={{ textAlign: 'right', borderLeft: '1px solid #1f2937', paddingLeft: '20px' }}>
+              <p style={{ color: '#4f46e5', fontSize: '12px', fontWeight: 'bold', margin: 0 }}>ADMINS</p>
+              <h4 style={{ fontSize: '24px', fontWeight: '900', margin: 0 }}>{admins}</h4>
             </div>
           </div>
-        ))}
+        </div>
+
+        {/* --- FORMULAIRE D'AJOUT V2 --- */}
+        <div style={{ backgroundColor: '#141416', padding: '30px', borderRadius: '24px', border: '1px solid #1f2937', marginBottom: '50px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <UserPlus size={18} color="#4f46e5" /> Intégrer un nouveau collaborateur
+          </h3>
+          <form action={createUser} style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            <input name="name" type="text" placeholder="Prénom Nom" required style={{ backgroundColor: '#000', border: '1px solid #1f2937', borderRadius: '12px', padding: '12px 20px', color: 'white', flex: 1, fontSize: '14px', outline: 'none' }} />
+            <input name="email" type="email" placeholder="Email professionnel" required style={{ backgroundColor: '#000', border: '1px solid #1f2937', borderRadius: '12px', padding: '12px 20px', color: 'white', flex: 1, fontSize: '14px', outline: 'none' }} />
+            <select name="role" style={{ backgroundColor: '#000', border: '1px solid #1f2937', borderRadius: '12px', padding: '12px 20px', color: 'white', fontSize: '14px', outline: 'none', cursor: 'pointer' }}>
+              <option value="archi">Pôle Architecture</option>
+              <option value="media">Pôle Média</option>
+              <option value="admin">Administrateur</option>
+            </select>
+            <button type="submit" style={{ backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '12px', padding: '12px 30px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', transition: '0.2s' }}>
+              Ajouter au collectif
+            </button>
+          </form>
+        </div>
+
+        {/* --- GRILLE DES TALENTS --- */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '25px' }}>
+          {team.map((user) => (
+            <div key={user.id} style={{ backgroundColor: '#141416', padding: '30px', borderRadius: '28px', border: '1px solid #1f2937', transition: 'all 0.3s ease' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '25px' }}>
+                <div style={{ 
+                  width: '60px', 
+                  height: '60px', 
+                  borderRadius: '20px', 
+                  backgroundColor: user.role === 'admin' ? '#ef4444' : user.role === 'archi' ? '#3b82f6' : '#a855f7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '24px',
+                  fontWeight: 'bold',
+                  boxShadow: '0 10px 20px rgba(0,0,0,0.3)'
+                }}>
+                  {user.name.charAt(0)}
+                </div>
+                <div style={{ 
+                  padding: '5px 12px', 
+                  borderRadius: '8px', 
+                  fontSize: '10px', 
+                  fontWeight: 'bold', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px',
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  color: '#94a3b8',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  {user.role}
+                </div>
+              </div>
+
+              <h3 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0 0 5px 0' }}>{user.name}</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '13px', marginBottom: '20px' }}>
+                <Mail size={14} /> {user.email}
+              </div>
+
+              <div style={{ borderTop: '1px solid #1f2937', paddingTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', color: '#475569', fontWeight: 'bold' }}>COBALT OPERATOR</span>
+                <Shield size={16} color={user.role === 'admin' ? '#ef4444' : '#475569'} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {team.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '100px', color: '#475569' }}>
+            <Users size={48} style={{ marginBottom: '20px', opacity: 0.2 }} />
+            <p>Aucun membre n'a encore rejoint le collectif.</p>
+          </div>
+        )}
+
       </div>
     </div>
   );

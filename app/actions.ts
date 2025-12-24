@@ -3,119 +3,126 @@
 import { prisma } from "./lib/prisma";
 import { revalidatePath } from "next/cache";
 
-// --- ACTIONS CRM (CLIENTS) ---
+// --- ACTIONS CRM ---
 export async function createClient(formData: FormData) {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const type = formData.get("type") as string;
-
   if (!name) return;
-
-  await prisma.client.create({
-    data: { name, email, type }
-  });
-
-  revalidatePath("/crm"); // On rafraîchit la page CRM
+  await prisma.client.create({ data: { name, email, type } });
+  revalidatePath("/crm");
 }
 
-// --- ACTIONS RH (MEMBRES) ---
+// --- ACTIONS RH ---
 export async function createUser(formData: FormData) {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const role = formData.get("role") as string;
-
   if (!name || !email) return;
-
-  await prisma.user.create({
-    data: { 
-      name, 
-      email, 
-      role,
-      password: "temp" // Mot de passe temporaire
-    }
-  });
-
-  revalidatePath("/hr");
+  try {
+    await prisma.user.create({
+      data: { name, email, role: role || "membre", password: "temp_password_cobalt" }
+    });
+    revalidatePath("/hr");
+  } catch (error) {
+    console.error("Erreur RH:", error);
+  }
 }
 
-// --- ACTIONS FINANCE (FACTURE RAPIDE) ---
+// --- ACTIONS FINANCE ---
 export async function createQuickInvoice(formData: FormData) {
-  // Pour faire simple, on crée une facture brouillon liée au premier client trouvé
-  // (Dans la V2 on fera un sélecteur de client complet)
   const firstClient = await prisma.client.findFirst();
-
-  if (!firstClient) return; // Il faut au moins un client !
-
+  if (!firstClient) return;
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + 30);
   await prisma.invoice.create({
     data: {
-      number: `FAC-${Date.now().toString().slice(-6)}`, // Numéro auto
+      number: `FAC-${Date.now().toString().slice(-6)}`,
       status: "DRAFT",
       totalHT: 0,
-      clientId: firstClient.id
+      clientId: firstClient.id,
+      dueDate: dueDate 
     }
   });
-
   revalidatePath("/finance");
+  revalidatePath("/"); 
 }
 
-// --- ACTIONS PARAMÈTRES (SERVICES) ---
-export async function createService(formData: FormData) {
-  const name = formData.get("name") as string;
-  const price = parseFloat(formData.get("price") as string);
-  
-  if (!name) return;
-
-  await prisma.service.create({
-    data: { 
-      name, 
-      price: price || 0, 
-      unit: "Forfait", 
-      category: "Autre" 
-    }
+// --- ACTIONS PROJETS ---
+export async function createProject(formData: FormData) {
+  const title = formData.get("title") as string;
+  const type = formData.get("type") as string;
+  const priority = (formData.get("priority") as string) || "MEDIUM";
+  const clientId = formData.get("clientId") as string;
+  if (!title) return;
+  await prisma.project.create({
+    data: { title, type: type || "Autre", priority, status: "TODO", clientId }
   });
-
-  revalidatePath("/settings");
-}
-
-// ... garde tout le code précédent (createClient, createUser, etc.) ...
-
-// --- ACTION SYSTÈME (RESET DATABASE) ---
-export async function resetDatabase() {
-  // On supprime dans l'ordre inverse des dépendances
-  // (On supprime les factures avant les clients, les tâches avant les projets...)
-  
-  // 1. Tables dépendantes (Enfants)
-  await prisma.invoiceItem.deleteMany();
-  await prisma.task.deleteMany();
-  
-  // 2. Tables principales (Parents)
-  await prisma.invoice.deleteMany();
-  await prisma.project.deleteMany();
-  await prisma.client.deleteMany();
-  await prisma.service.deleteMany();
-  
-  // 3. Utilisateurs (sauf si tu veux garder ton admin, mais ici on vide tout)
-  await prisma.user.deleteMany();
-
-  revalidatePath("/");
-  revalidatePath("/crm");
-  revalidatePath("/finance");
   revalidatePath("/projects");
-  revalidatePath("/settings");
 }
-// --- ACTIONS DE SUPPRESSION ---
 
+// ACTION DE PERSONNALISATION V2
+export async function updateProjectAction(formData: FormData) {
+  const id = formData.get("projectId") as string;
+  const description = formData.get("description") as string;
+  const notes = formData.get("notes") as string;
+  const budget = parseFloat(formData.get("budget") as string) || 0;
+  const driveLink = formData.get("driveLink") as string;
+
+  await prisma.project.update({
+    where: { id },
+    data: { description, notes, budget, driveLink }
+  });
+
+  revalidatePath(`/projects/${id}`);
+  revalidatePath("/projects");
+}
+
+// --- ACTIONS INVENTAIRE ---
+export async function createInventoryItem(formData: FormData) {
+  const name = formData.get("name") as string;
+  const category = formData.get("category") as string;
+  if (!name || !category) return;
+  await prisma.inventoryItem.create({ data: { name, category, status: "AVAILABLE" } });
+  revalidatePath("/inventory");
+}
+
+export async function borrowItem(id: string, borrowerName: string) {
+  const returnDate = new Date();
+  returnDate.setDate(returnDate.getDate() + 7);
+  await prisma.inventoryItem.update({
+    where: { id },
+    data: { status: "BORROWED", borrower: borrowerName, returnDate }
+  });
+  revalidatePath("/inventory");
+}
+
+export async function returnItem(id: string) {
+  await prisma.inventoryItem.update({
+    where: { id },
+    data: { status: "AVAILABLE", borrower: null, returnDate: null }
+  });
+  revalidatePath("/inventory");
+}
+
+// --- SUPPRESSIONS & SYSTEME ---
 export async function deleteProject(id: string) {
-  // On supprime d'abord les tâches si elles existent
-  await prisma.task.deleteMany({ where: { projectId: id } });
   await prisma.project.delete({ where: { id } });
   revalidatePath("/projects");
 }
 
 export async function deleteClient(id: string) {
-  // Sécurité : on supprime les projets liés avant le client
-  await prisma.project.deleteMany({ where: { clientId: id } });
-  await prisma.invoice.deleteMany({ where: { clientId: id } });
   await prisma.client.delete({ where: { id } });
   revalidatePath("/crm");
+}
+
+export async function resetDatabase() {
+  await prisma.invoiceItem.deleteMany();
+  await prisma.task.deleteMany();
+  await prisma.invoice.deleteMany();
+  await prisma.project.deleteMany();
+  await prisma.client.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.inventoryItem.deleteMany();
+  revalidatePath("/");
 }
