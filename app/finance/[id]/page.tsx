@@ -1,6 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MapPin, Mail, Globe } from "lucide-react";
 import Link from "next/link";
 import { PrintButton } from "@/components/PrintButton";
 
@@ -18,53 +18,63 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   const ttc = invoice.totalHT + tva;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0B] p-4 md:p-8 print:p-0 print:bg-white">
+    <div className="min-h-screen bg-[#0A0A0B] p-4 md:p-12 print:p-0 print:bg-white transition-all">
       
-      <div className="max-w-[21cm] mx-auto mb-8 flex justify-between items-center print:hidden">
-        <Link href="/finance" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
-          <ArrowLeft size={18} /> Retour aux finances
+      {/* BARRE D'OUTILS - Masquée à l'impression */}
+      <div className="max-w-[21cm] mx-auto mb-10 flex justify-between items-center print:hidden">
+        <Link href="/finance" className="flex items-center gap-2 text-gray-500 hover:text-white transition-all text-sm font-medium">
+          <ArrowLeft size={16} /> Retour aux finances
         </Link>
         <PrintButton />
       </div>
 
-      {/* LA FEUILLE A4 - Forçage manuel des couleurs */}
-      <div 
-        className="mx-auto w-full max-w-[21cm] bg-white shadow-2xl print:shadow-none"
-        style={{ color: '#0f172a', backgroundColor: 'white' }} 
-      >
-        <div className="p-12 md:p-20 flex flex-col min-h-[29.7cm]">
+      {/* LA FEUILLE A4 - Forçage manuel des couleurs pour contrer le mode sombre */}
+      <div className="mx-auto w-full max-w-[21cm] bg-white shadow-2xl print:shadow-none overflow-hidden border border-white/5">
+        
+        <div className="p-12 md:p-20 flex flex-col min-h-[29.7cm] bg-white" style={{ color: '#1a1a1a' }}>
           
           {/* HEADER */}
-          <div className="flex justify-between items-start mb-20">
-            <div>
-              <div className="bg-indigo-600 text-white w-12 h-12 flex items-center justify-center rounded-xl mb-4 font-black text-2xl">C</div>
-              <h1 className="text-2xl font-black uppercase tracking-tighter" style={{ color: '#0f172a' }}>Collectif Cobalt</h1>
-              <p style={{ color: '#64748b' }} className="text-xs font-bold uppercase tracking-widest">Architecture & Design</p>
+          <div className="flex justify-between items-start mb-24">
+            <div className="space-y-6">
+              <div className="bg-indigo-600 text-white w-14 h-14 flex items-center justify-center rounded-2xl font-black text-3xl shadow-xl shadow-indigo-500/20">C</div>
+              <div className="space-y-1">
+                <h1 className="text-2xl font-black uppercase tracking-tighter" style={{ color: '#1a1a1a' }}>Collectif Cobalt</h1>
+                <p className="text-[10px] text-indigo-600 font-black uppercase tracking-[0.3em]">Studio de Création & Architecture</p>
+              </div>
             </div>
+            
             <div className="text-right">
-              <h2 className="text-5xl font-black uppercase tracking-tighter" style={{ color: '#f1f5f9' }}>Facture</h2>
-              <p className="font-mono font-bold text-lg" style={{ color: '#4f46e5' }}>N° {invoice.number}</p>
-              <p style={{ color: '#94a3b8' }} className="text-sm">Le {new Date(invoice.date).toLocaleDateString('fr-FR')}</p>
+              <h2 className="text-6xl font-black uppercase tracking-tighter mb-4" style={{ color: '#f1f5f9' }}>Facture</h2>
+              <div className="space-y-1">
+                <p className="font-mono font-bold text-indigo-600">REF_{invoice.number}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#94a3b8' }}>Le {new Date(invoice.date).toLocaleDateString('fr-FR')}</p>
+              </div>
             </div>
           </div>
 
           {/* ADRESSES */}
-          <div className="grid grid-cols-2 gap-20 mb-24">
-            <div style={{ borderLeft: '4px solid #4f46e5' }} className="pl-6">
-              <p className="text-[10px] font-black uppercase tracking-widest mb-4" style={{ color: '#4f46e5' }}>Émetteur</p>
-              <p className="font-extrabold text-lg" style={{ color: '#0f172a' }}>Collectif Cobalt</p>
-              <p style={{ color: '#475569' }} className="text-sm leading-relaxed">
-                5 Rue du Puis-le-Vlier<br />
-                86000 Poitiers, France
-              </p>
+          <div className="grid grid-cols-2 gap-20 mb-24 py-12 border-y border-slate-100">
+            <div className="space-y-6">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: '#4f46e5' }}>Émetteur</h3>
+              <div className="space-y-2">
+                <p className="font-bold text-lg" style={{ color: '#1a1a1a' }}>Collectif Cobalt</p>
+                <div className="text-xs space-y-1" style={{ color: '#64748b' }}>
+                   <p>5 Rue du Puis-le-Vlier</p>
+                   <p>86000 Poitiers, France</p>
+                   <p className="pt-2 italic text-[10px]">SIRET: 123 456 789 00012</p>
+                </div>
+              </div>
             </div>
-            <div className="text-right pr-6" style={{ borderRight: '4px solid #f1f5f9' }}>
-              <p className="text-[10px] font-black uppercase tracking-widest mb-4" style={{ color: '#94a3b8' }}>Client</p>
-              <p className="font-extrabold text-lg" style={{ color: '#0f172a' }}>{invoice.client.name}</p>
-              <p style={{ color: '#475569' }} className="text-sm leading-relaxed">
-                {invoice.client.email}<br />
-                {invoice.client.address || "Adresse de facturation"}
-              </p>
+
+            <div className="text-right space-y-6">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: '#94a3b8' }}>Destinataire</h3>
+              <div className="space-y-2">
+                <p className="font-bold text-lg" style={{ color: '#1a1a1a' }}>{invoice.client.name}</p>
+                <div className="text-xs space-y-1" style={{ color: '#64748b' }}>
+                   <p>{invoice.client.address || "Adresse de facturation"}</p>
+                   <p className="text-indigo-600 font-medium">{invoice.client.email}</p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -72,19 +82,21 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           <div className="flex-grow">
             <table className="w-full">
               <thead>
-                <tr style={{ borderBottom: '2px solid #0f172a' }}>
-                  <th className="py-4 text-left text-[10px] font-black uppercase tracking-widest" style={{ color: '#94a3b8' }}>Description</th>
-                  <th className="py-4 text-right text-[10px] font-black uppercase tracking-widest" style={{ color: '#94a3b8' }}>Total HT</th>
+                <tr className="border-b-2 border-slate-900">
+                  <th className="pb-6 text-left text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: '#94a3b8' }}>Description</th>
+                  <th className="pb-6 text-right text-[10px] font-black uppercase tracking-[0.2em] w-32" style={{ color: '#94a3b8' }}>Total HT</th>
                 </tr>
               </thead>
               <tbody>
-                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td className="py-12">
-                    <p className="font-bold text-xl mb-2" style={{ color: '#0f172a' }}>Prestation créative sur-mesure</p>
-                    <p style={{ color: '#64748b' }} className="text-sm max-w-md italic leading-relaxed">Réalisation selon les termes définis dans le devis. Inclut conception et livraison.</p>
+                <tr>
+                  <td className="py-12 border-b border-slate-100">
+                    <p className="font-bold text-xl mb-2" style={{ color: '#1a1a1a' }}>Prestation Créative Globale</p>
+                    <p className="text-sm leading-relaxed max-w-lg italic" style={{ color: '#64748b' }}>
+                      Conception et réalisation sur-mesure selon les termes du cahier des charges.
+                    </p>
                   </td>
-                  <td className="py-12 text-right font-black text-2xl" style={{ color: '#0f172a' }}>
-                    {invoice.totalHT.toLocaleString('fr-FR')} €
+                  <td className="py-12 border-b border-slate-100 text-right align-top">
+                    <span className="font-black text-2xl" style={{ color: '#1a1a1a' }}>{invoice.totalHT.toLocaleString('fr-FR')} €</span>
                   </td>
                 </tr>
               </tbody>
@@ -92,26 +104,30 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           </div>
 
           {/* TOTALS */}
-          <div className="flex justify-end mt-16 pt-10" style={{ borderTop: '4px solid #f8fafc' }}>
-            <div className="w-72 space-y-4">
-              <div className="flex justify-between font-bold" style={{ color: '#64748b' }}>
-                <span>Total HT</span>
-                <span>{invoice.totalHT.toLocaleString('fr-FR')} €</span>
+          <div className="mt-16 flex justify-end">
+            <div className="w-80 space-y-4">
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest px-2" style={{ color: '#94a3b8' }}>
+                <span>Base Hors Taxes</span>
+                <span style={{ color: '#1a1a1a' }}>{invoice.totalHT.toLocaleString('fr-FR')} €</span>
               </div>
-              <div className="flex justify-between text-sm" style={{ color: '#94a3b8' }}>
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest px-2" style={{ color: '#94a3b8' }}>
                 <span>TVA (20%)</span>
-                <span>{tva.toLocaleString('fr-FR')} €</span>
+                <span style={{ color: '#1a1a1a' }}>{tva.toLocaleString('fr-FR')} €</span>
               </div>
-              <div className="flex justify-between text-3xl font-black pt-4" style={{ color: '#4f46e5', borderTop: '2px solid #0f172a' }}>
-                <span>TOTAL TTC</span>
-                <span>{ttc.toLocaleString('fr-FR')} €</span>
+              <div className="bg-indigo-600 p-8 rounded-3xl flex justify-between items-center text-white shadow-2xl shadow-indigo-600/30">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em]">Total TTC</span>
+                <span className="text-4xl font-black">{ttc.toLocaleString('fr-FR')} €</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-24 pt-8 text-[10px] text-center uppercase font-bold tracking-tighter" style={{ color: '#94a3b8', borderTop: '1px solid #f1f5f9' }}>
-            Collectif Cobalt — SIRET 123 456 789 00012 — FR98123456789
+          {/* FOOTER */}
+          <div className="mt-24 pt-10 border-t border-slate-50 text-center">
+            <p className="text-[9px] font-bold uppercase tracking-tighter" style={{ color: '#cbd5e1' }}>
+              Paiement sous 30 jours — Collectif Cobalt Biarritz — www.cobalt-collectif.fr
+            </p>
           </div>
+
         </div>
       </div>
     </div>
