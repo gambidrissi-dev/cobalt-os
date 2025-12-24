@@ -1,6 +1,8 @@
 import { prisma } from "../lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Plus, Briefcase, Building } from "lucide-react";
+import { deleteProject } from "../../app/actions";
+import { DeleteButton } from "../../components/DeleteButton";
 
 // --- ACTION SERVEUR ---
 async function createProject(formData: FormData) {
@@ -124,7 +126,7 @@ export default async function ProjectsPage() {
 // --- CARTE PROJET ---
 function ProjectCard({ project, color }: { project: any, color: string }) {
   return (
-    <div className={`bg-[#141416] p-4 rounded-xl border border-white/5 hover:border-white/20 transition-all group ${color} border-l-4 shadow-sm`}>
+    <div className={`bg-[#141416] p-4 rounded-xl border border-white/5 hover:border-white/20 transition-all group ${color} border-l-4 shadow-sm relative`}>
       <div className="flex justify-between items-start mb-2">
         {/* Badge Type */}
         <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${
@@ -134,7 +136,12 @@ function ProjectCard({ project, color }: { project: any, color: string }) {
         }`}>
             {project.type === 'archi' ? 'Archi' : 'Média'}
         </span>
-        <span className="text-sm font-bold text-white">{project.value.toLocaleString()} €</span>
+        
+        {/* LA GOMME : Placée à côté du montant */}
+        <div className="flex items-center gap-2">
+           <span className="text-sm font-bold text-white">{project.value.toLocaleString()} €</span>
+           <DeleteButton id={project.id} action={deleteProject} />
+        </div>
       </div>
       
       <h3 className="font-medium text-white group-hover:text-blue-400 transition-colors leading-tight">
@@ -143,12 +150,10 @@ function ProjectCard({ project, color }: { project: any, color: string }) {
       
       <div className="flex justify-between items-center mt-4 pt-3 border-t border-white/5">
         <span className="text-[10px] text-gray-500 font-mono">#{project.id.slice(-4)}</span>
-        {/* On pourra ajouter la date ici plus tard */}
       </div>
     </div>
   );
 }
-
 function EmptyState() {
   return (
     <div className="h-24 rounded-xl border border-dashed border-white/5 bg-white/[0.02] flex items-center justify-center text-gray-600 text-xs">

@@ -103,3 +103,19 @@ export async function resetDatabase() {
   revalidatePath("/projects");
   revalidatePath("/settings");
 }
+// --- ACTIONS DE SUPPRESSION ---
+
+export async function deleteProject(id: string) {
+  // On supprime d'abord les tâches si elles existent
+  await prisma.task.deleteMany({ where: { projectId: id } });
+  await prisma.project.delete({ where: { id } });
+  revalidatePath("/projects");
+}
+
+export async function deleteClient(id: string) {
+  // Sécurité : on supprime les projets liés avant le client
+  await prisma.project.deleteMany({ where: { clientId: id } });
+  await prisma.invoice.deleteMany({ where: { clientId: id } });
+  await prisma.client.delete({ where: { id } });
+  revalidatePath("/crm");
+}
