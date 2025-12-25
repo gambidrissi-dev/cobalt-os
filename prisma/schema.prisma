@@ -1,109 +1,139 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
-// 1. UTILISATEURS (L'équipe)
+// NOTE : Avec SQLite, on ne peut pas utiliser "enum".
+// On utilise String et on gère la logique dans le code.
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  role      String   // admin, media, archi
-  password  String   
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  password        String
+  
+  role            String   @default("SALARIE") // HIÉRARCHIE : PRESIDENT, DG, ASSOCIE, SALARIE...
+  job             String   @default("Membre")  // MÉTIER : Architecte, Menuisier...
+  title           String?                      // TITRE : Fondateur, Associé... <--- AJOUT ICI
+  
+  avatar          String?
+  // Stocké comme texte "ARCHI,ATELIER"
+  allowedEntities String 
+  
+  assignedTasks   Task[]
+  borrowedItems   InventoryItem[]
+  
+  // --- AJOUT CORRECTIF ---
+  timeLogs        TimeLog[] // Relation nécessaire pour le Time Tracking
+  
+  createdAt       DateTime @default(now())
 }
 
-// 2. CLIENTS (CRM)
-model Client {
-  id        String    @id @default(cuid())
-  name      String
-  type      String    
-  email     String?
-  phone     String?
-  address   String?
-  projects  Project[]
-  invoices  Invoice[]
-}
-
-// 3. PROJETS & TÂCHES (Version Cockpit Deep Dive)
 model Project {
-  id           String    @id @default(cuid())
-  title        String
-  type         String    
-  status       String    @default("TODO") 
-  priority     String    @default("MEDIUM")
+  id          String   @id @default(cuid())
+  title       String
+  entity      String   // ARCHI, ATELIER, SCI...
+  clientName  String
+  status      String   @default("IN_PROGRESS")
   
-  // Personnalisation V2
-  value        Float     @default(0)
-  budget       Float     @default(0)
-  description  String?   
-  notes        String?   
-  driveLink    String?   
+  phase       String?  // ESQ, APS, APD...
+  budget      Float    @default(0)
   
-  dueDate      DateTime?
-  createdAt    DateTime  @default(now())
-  // Correction pour la migration : valeur par défaut ajoutée
-  updatedAt    DateTime  @default(now()) @updatedAt 
+  stockUsed   Boolean  @default(false)
+
+  tasks       Task[]
+  wikiPages   WikiPage[]
+  invoices    Invoice[]
   
-  clientId     String?
-  client       Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  // --- AJOUT CORRECTIF ---
+  timeLogs    TimeLog[] // Relation nécessaire pour le Time Tracking
   
-  tasks        Task[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WikiPage {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   
+  
+  // --- AJOUTE LES "?" ICI ---
+  projectId String?    // <--- Ajoute le ?
+  project   Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade) // <--- Ajoute le ?
+  
+  updatedAt DateTime @updatedAt
 }
 
 model Task {
-  id          String   @id @default(cuid())
-  title       String
-  done        Boolean  @default(false)
-  timeSpent   Int      @default(0) 
-  timerActive Boolean  @default(false)
+  id        String   @id @default(cuid())
+  title     String
+  done      Boolean  @default(false)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
   
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-// 4. FINANCE (Factures & Catalogue)
+model Client {
+  id        String    @id @default(cuid())
+  name      String
+  email     String?
+  type      String
+  entity    String    // ARCHI, ATELIER...
+  invoices  Invoice[]
+}
+
 model Invoice {
   id        String   @id @default(cuid())
-  number    String   @unique 
-  status    String   @default("DRAFT") 
-  date      DateTime @default(now())
-  dueDate   DateTime 
-  totalHT   Float    @default(0)
+  number    String   @unique
+  totalHT   Float
+  status    String   
+  dueDate   DateTime
+  
+  entity    String   // ARCHI, ATELIER...
   
   clientId  String
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  items     InvoiceItem[]
-}
-
-model InvoiceItem {
-  id          String  @id @default(cuid())
-  description String
-  quantity    Float
-  unitPrice   Float
+  client    Client   @relation(fields: [clientId], references: [id])
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
   
-  invoiceId   String
-  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }
 
-model Service {
-  id          String @id @default(cuid())
-  name        String
-  price       Float
-  unit        String 
-  category    String 
-  description String?
-}
-
-// 5. MATÉRIEL (Inventaire)
 model InventoryItem {
   id          String    @id @default(cuid())
   name        String
   category    String
-  status      String    @default("AVAILABLE") 
-  borrower    String?   
+  entity      String    // ARCHI, ATELIER...
+  status      String    
+  borrowerId  String?
+  borrower    User?     @relation(fields: [borrowerId], references: [id])
   returnDate  DateTime?
+}
+
+// --- AJOUT POUR LE TIME TRACKING ---
+
+model TimeLog {
+  id        String   @id @default(cuid())
+  duration  Float    // Durée en heures (ex: 1.5 pour 1h30)
+  date      DateTime // Date précise de la saisie
+  note      String?  // Commentaire optionnel (ex: "Réunion client")
+  
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

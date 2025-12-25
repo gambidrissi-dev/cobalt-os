@@ -48,22 +48,19 @@ export async function createQuickInvoice(formData: FormData) {
   revalidatePath("/"); 
 }
 
-// NOUVEAU : Action pour sauvegarder une facture "de long en large"
+// Action pour sauvegarder une facture "de long en large"
 export async function updateInvoiceAction(formData: FormData) {
   const id = formData.get("invoiceId") as string;
   const amount = parseFloat(formData.get("amount") as string) || 0;
   const status = formData.get("status") as string;
   const dueDate = formData.get("dueDate") as string;
-  const notes = formData.get("notes") as string;
 
   await prisma.invoice.update({
     where: { id },
     data: { 
       totalHT: amount, 
       status, 
-      dueDate: new Date(dueDate),
-      // Si tu as ajouté un champ notes dans ton schéma Invoice
-      // notes: notes 
+      dueDate: new Date(dueDate)
     }
   });
 
@@ -85,7 +82,7 @@ export async function createProject(formData: FormData) {
   revalidatePath("/projects");
 }
 
-// NOUVEAU : Action pour le Drag & Drop du Kanban
+// Action pour le Drag & Drop du Kanban
 export async function updateProjectStatus(projectId: string, newStatus: string) {
   await prisma.project.update({
     where: { id: projectId },
@@ -95,6 +92,7 @@ export async function updateProjectStatus(projectId: string, newStatus: string) 
   revalidatePath("/");
 }
 
+// Action pour personnaliser le projet (Brief, Notes, Budget, Drive)
 export async function updateProjectAction(formData: FormData) {
   const id = formData.get("projectId") as string;
   const description = formData.get("description") as string;
@@ -163,4 +161,51 @@ export async function resetDatabase() {
   revalidatePath("/projects");
   revalidatePath("/hr");
   revalidatePath("/inventory");
+}
+
+// --- ACTIONS DES TÂCHES (CHECKLIST) ---
+export async function addTaskAction(formData: FormData) {
+  const projectId = formData.get("projectId") as string;
+  const title = formData.get("title") as string;
+
+  if (!title || !projectId) return;
+
+  await prisma.task.create({
+    data: {
+      title,
+      projectId,
+      done: false
+    }
+  });
+
+  revalidatePath(`/projects/${projectId}`);
+}
+
+export async function toggleTaskAction(taskId: string, projectId: string, currentStatus: boolean) {
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { done: !currentStatus }
+  });
+
+  revalidatePath(`/projects/${projectId}`);
+}
+
+// --- ACTION ASSIGNATION ÉQUIPE ---
+export async function assignUserToProject(formData: FormData) {
+  const projectId = formData.get("projectId") as string;
+  const userId = formData.get("userId") as string;
+
+  if (!projectId || !userId) return;
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { 
+      // Si tu as une relation Many-to-Many ou un champ spécifique
+      // Ici on suppose que tu veux simplement mettre à jour une note ou un champ dédié
+      // Pour une vraie relation, il faudrait modifier le schéma Prisma
+      notes: { set: `Responsable : ${userId}` } 
+    }
+  });
+
+  revalidatePath(`/projects/${projectId}`);
 }

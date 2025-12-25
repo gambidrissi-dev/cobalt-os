@@ -1,133 +1,217 @@
-import { prisma } from "./lib/prisma";
-import { TrendingUp, Users, Briefcase, Clock, AlertTriangle, Flame, Target, Star } from "lucide-react";
+import { prisma } from "@/app/lib/prisma";
+import { getActiveEntity, getCurrentUser } from "@/app/actions/auth"; // <--- 1. IMPORT getCurrentUser
 import Link from "next/link";
+import { 
+  ArrowUpRight, Users, Clock, CreditCard, 
+  TrendingUp, Activity, AlertCircle 
+} from "lucide-react";
 
 export default async function Dashboard() {
-  const now = new Date();
-  const ANNUAL_GOAL = 50000;
+  const entity = await getActiveEntity();
+  
+  // --- 2. RÉCUPÉRATION DE L'UTILISATEUR CONNECTÉ ---
+  const user = await getCurrentUser();
+  // On prend juste le prénom (ce qui est avant l'espace) ou "l'Équipe" par défaut
+  const firstName = user ? user.name.split(' ')[0] : "l'Équipe"; 
 
-  const [totalInvoices, projectCount, clientCount, recentProjects, lateInvoices, archiProjects, mediaProjects, topClients] = await Promise.all([
-    prisma.invoice.aggregate({ _sum: { totalHT: true } }),
-    prisma.project.count(),
-    prisma.client.count(),
+  // 1. DATES 
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+  const endOfDay = new Date(); endOfDay.setHours(23,59,59,999);
+
+  // 2. REQUÊTES PARALLÈLES
+  const [
+    projects,
+    invoicesThisMonth,
+    pendingInvoices,
+    todaysLogs,
+    activeUsers
+  ] = await Promise.all([
+    // A. Projets
     prisma.project.findMany({
-      take: 5,
-      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
-      include: { client: true }
+      where: { 
+        entity: entity === 'GLOBAL' ? {} : entity,
+        status: 'IN_PROGRESS' 
+      },
+      take: 4,
+      orderBy: { updatedAt: 'desc' }
     }),
+
+    // B. CA du mois
     prisma.invoice.findMany({
-      where: { status: { not: "PAID" }, dueDate: { lt: now } },
-      include: { client: true }
+      where: {
+        entity: entity === 'GLOBAL' ? {} : entity,
+        createdAt: { gte: firstDayOfMonth }
+      }
     }),
-    prisma.project.count({ where: { type: "archi" } }),
-    prisma.project.count({ where: { type: "media" } }),
-    prisma.client.findMany({
-      take: 3,
-      include: { _count: { select: { invoices: true } } },
-      orderBy: { invoices: { _count: 'desc' } }
-    })
+
+    // C. Factures en attente
+    prisma.invoice.findMany({
+      where: {
+        entity: entity === 'GLOBAL' ? {} : entity,
+        status: 'PENDING'
+      },
+      include: { client: true },
+      take: 3
+    }),
+
+    // D. Pointages du jour
+    prisma.timeLog.findMany({
+      where: { date: { gte: startOfDay, lte: endOfDay } },
+      include: { user: true }
+    }),
+
+    // E. Total membres
+    prisma.user.count()
   ]);
 
-  const currentCA = totalInvoices._sum.totalHT || 0;
-  const progressPercent = Math.min(Math.round((currentCA / ANNUAL_GOAL) * 100), 100);
+  // 3. CALCULS DES KPI
+  const currentRevenue = invoicesThisMonth.reduce((acc, inv) => acc + inv.totalHT, 0);
+  const pendingRevenue = pendingInvoices.reduce((acc, inv) => acc + inv.totalHT, 0);
+  const activeUserIds = new Set(todaysLogs.map(log => log.userId));
 
   return (
-    <div style={{ backgroundColor: '#0A0A0B', minHeight: '100vh', padding: '40px', color: 'white' }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="space-y-8 fade-in pb-10">
+      
+      {/* HEADER WELCOME PERSONNALISÉ */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">
+            Bonjour, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">{firstName}</span> 👋
+          </h1>
+          <p className="text-gray-400">Voici ce qui se passe aujourd'hui chez {entity === 'GLOBAL' ? 'Collectif Cobalt' : entity}.</p>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/5">
+           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
+           <span className="text-xs font-bold text-gray-300">Système Opérationnel</span>
+        </div>
+      </div>
+
+      {/* 1. KPI CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        {/* HEADER */}
-        <header style={{ marginBottom: '50px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-             <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '-2px', margin: 0 }}>Command Center</h1>
-             <span style={{ backgroundColor: '#4f46e5', padding: '5px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: '900' }}>V2.1</span>
-          </div>
-          <p style={{ color: '#64748b', fontSize: '18px', marginTop: '10px' }}>Intelligence business et croissance du collectif</p>
-        </header>
-
-        {/* ALERTES & OBJECTIFS */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px', marginBottom: '40px' }}>
-           <div style={{ backgroundColor: '#141416', padding: '30px', borderRadius: '32px', border: '1px solid #1f2937' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94a3b8', fontSize: '14px', fontWeight: 'bold' }}><Target size={16}/> Objectif Annuel</span>
-                <span style={{ fontWeight: '900', color: '#4f46e5' }}>{progressPercent}%</span>
-              </div>
-              <div style={{ height: '12px', backgroundColor: '#1f2937', borderRadius: '10px', overflow: 'hidden' }}>
-                {/* FIX LIGNE 58 : Utilisation des backticks correcte */}
-                <div style={{ width: `${progressPercent}%`, height: '100%', backgroundColor: '#4f46e5' }}></div>
-              </div>
-              <p style={{ marginTop: '15px', fontSize: '12px', color: '#64748b' }}>{currentCA.toLocaleString()}€ sur {ANNUAL_GOAL.toLocaleString()}€</p>
+        {/* CA MENSUEL */}
+        <div className="p-5 bg-[#141416] border border-white/10 rounded-2xl relative overflow-hidden group">
+           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <TrendingUp size={40} className="text-green-500" />
            </div>
-
-           {lateInvoices.length > 0 && (
-             <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', padding: '25px', borderRadius: '32px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                <AlertTriangle size={24} color="#ef4444" />
-                <p style={{ margin: 0, fontWeight: 'bold', color: '#fca5a5' }}>{lateInvoices.length} factures en retard</p>
-                <Link href="/finance" style={{ marginLeft: 'auto', color: '#ef4444', fontSize: '12px', fontWeight: '900', textDecoration: 'none' }}>AGIR →</Link>
-             </div>
-           )}
+           <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">Production (Ce mois)</p>
+           <h3 className="text-2xl font-black text-white">{currentRevenue.toLocaleString()} €</h3>
+           <p className="text-xs text-green-500 font-bold mt-2 flex items-center gap-1">
+             <ArrowUpRight size={12}/> Sur factures émises
+           </p>
         </div>
 
-        {/* STATS CARDS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '50px' }}>
-          <div style={{ backgroundColor: '#141416', padding: '30px', borderRadius: '24px', border: '1px solid #1f2937' }}>
-            <p style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px' }}>Chiffre d'Affaires</p>
-            <h3 style={{ fontSize: '28px', fontWeight: '900', marginTop: '10px' }}>{currentCA.toLocaleString()} €</h3>
-          </div>
-          <div style={{ backgroundColor: '#141416', padding: '30px', borderRadius: '24px', border: '1px solid #1f2937' }}>
-            <p style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px' }}>Architecture</p>
-            <h3 style={{ fontSize: '28px', fontWeight: '900', marginTop: '10px', color: '#3b82f6' }}>{archiProjects} Projets</h3>
-          </div>
-          <div style={{ backgroundColor: '#141416', padding: '30px', borderRadius: '24px', border: '1px solid #1f2937' }}>
-            <p style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px' }}>Média</p>
-            <h3 style={{ fontSize: '28px', fontWeight: '900', marginTop: '10px', color: '#a855f7' }}>{mediaProjects} Projets</h3>
-          </div>
-          <div style={{ backgroundColor: '#141416', padding: '30px', borderRadius: '24px', border: '1px solid #1f2937' }}>
-            <p style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px' }}>Conversion</p>
-            <h3 style={{ fontSize: '28px', fontWeight: '900', marginTop: '10px', color: '#10b981' }}>{clientCount > 0 ? (projectCount / clientCount).toFixed(1) : 0} p/c</h3>
-          </div>
+        {/* TRÉSORERIE DEHORS */}
+        <div className="p-5 bg-[#141416] border border-white/10 rounded-2xl relative overflow-hidden group">
+           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <CreditCard size={40} className="text-orange-500" />
+           </div>
+           <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">En attente paiement</p>
+           <h3 className="text-2xl font-black text-white">{pendingRevenue.toLocaleString()} €</h3>
+           <p className="text-xs text-orange-500 font-bold mt-2">
+             {pendingInvoices.length} factures non réglées
+           </p>
         </div>
 
-        {/* MAIN GRID */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '30px' }}>
-          <div style={{ backgroundColor: '#141416', padding: '40px', borderRadius: '32px', border: '1px solid #1f2937' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '30px', display: 'flex', alignItems: 'center', gap: '10px' }}><Clock size={18} color="#4f46e5" /> Pipeline Production</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              {recentProjects.map((p) => (
-                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '18px', backgroundColor: '#1c1c1f', borderRadius: '18px', borderLeft: p.priority === 'URGENT' ? '4px solid #ef4444' : 'none' }}>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    {p.priority === 'URGENT' && <Flame size={14} color="#ef4444" />}
-                    <div>
-                      <p style={{ fontWeight: 'bold', margin: 0, fontSize: '14px' }}>{p.title}</p>
-                      <p style={{ color: '#64748b', fontSize: '11px', margin: '4px 0 0 0' }}>{p.client?.name || "Direct"}</p>
-                    </div>
+        {/* ACTIVITÉ RH */}
+        <div className="p-5 bg-[#141416] border border-white/10 rounded-2xl relative overflow-hidden group">
+           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Activity size={40} className="text-blue-500" />
+           </div>
+           <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">Actifs Aujourd'hui</p>
+           <h3 className="text-2xl font-black text-white">{activeUserIds.size} <span className="text-sm text-gray-500 font-medium">/ {activeUsers}</span></h3>
+           <div className="flex -space-x-2 mt-3">
+             {Array.from(activeUserIds).slice(0, 5).map((uid, i) => (
+                <div key={i} className="w-6 h-6 rounded-full bg-gray-700 border border-[#141416]"/>
+             ))}
+           </div>
+        </div>
+
+        {/* PROJETS ACTIFS */}
+        <div className="p-5 bg-gradient-to-br from-indigo-900/50 to-[#141416] border border-indigo-500/20 rounded-2xl relative overflow-hidden">
+           <p className="text-[10px] uppercase font-bold text-indigo-300 tracking-wider mb-1">Projets en cours</p>
+           <h3 className="text-2xl font-black text-white">{projects.length}</h3>
+           <Link href="/projects" className="absolute bottom-5 right-5 text-xs bg-white text-black px-3 py-1.5 rounded-lg font-bold hover:bg-gray-200 transition-colors">
+             Voir tout
+           </Link>
+        </div>
+
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* 2. DERNIERS PROJETS */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex justify-between items-end px-1">
+            <h3 className="font-bold text-white flex items-center gap-2"><Activity size={16} className="text-gray-500"/> Activité Récente</h3>
+          </div>
+          
+          <div className="bg-[#141416] border border-white/5 rounded-2xl overflow-hidden">
+            {projects.map((project) => (
+              <div key={project.id} className="p-4 border-b border-white/5 flex justify-between items-center hover:bg-white/[0.02] transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className={`w-2 h-10 rounded-full ${
+                    project.status === 'IN_PROGRESS' ? 'bg-blue-500' : 'bg-gray-500'
+                  }`}/>
+                  <div>
+                    <h4 className="font-bold text-white">{project.title}</h4>
+                    <p className="text-xs text-gray-500">{project.clientName} • {project.entity}</p>
                   </div>
-                  <span style={{ fontSize: '9px', backgroundColor: '#1e1b4b', color: '#a5b4fc', padding: '4px 10px', borderRadius: '6px', fontWeight: 'bold', alignSelf: 'center' }}>{p.status}</span>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-              <div style={{ backgroundColor: '#141416', padding: '30px', borderRadius: '32px', border: '1px solid #1f2937' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}><Star size={16} color="#f59e0b"/> Partenaires Tops</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {topClients.map((c, i) => (
-                    <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                       <span style={{ fontSize: '13px', color: '#94a3b8' }}>{i+1}. {c.name}</span>
-                       <span style={{ fontSize: '11px', color: '#64748b' }}>{c._count.invoices} fac.</span>
-                    </div>
-                  ))}
+                <div className="text-right">
+                  <span className="px-2 py-1 bg-white/5 rounded text-[10px] font-bold text-gray-300 border border-white/5">
+                    {project.phase || 'En cours'}
+                  </span>
                 </div>
               </div>
-
-              <div style={{ backgroundColor: '#4f46e5', padding: '30px', borderRadius: '32px', flexGrow: 1 }}>
-                <h3 style={{ fontSize: '24px', fontWeight: '900', margin: '0 0 10px 0' }}>Actions</h3>
-                <p style={{ fontSize: '12px', opacity: '0.8', margin: '0 0 20px 0' }}>Faites croître Cobalt OS.</p>
-                <Link href="/crm" style={{ display: 'block', backgroundColor: 'white', color: '#4f46e5', textAlign: 'center', padding: '12px', borderRadius: '12px', fontWeight: 'bold', textDecoration: 'none', marginBottom: '10px' }}>+ Client</Link>
-                <Link href="/finance" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.2)', color: 'white', textAlign: 'center', padding: '12px', borderRadius: '12px', fontWeight: 'bold', textDecoration: 'none' }}>+ Facture</Link>
-              </div>
+            ))}
+            {projects.length === 0 && <div className="p-8 text-center text-gray-500 italic">Aucun projet actif.</div>}
           </div>
         </div>
+
+        {/* 3. ALERTE FACTURATION */}
+        <div className="space-y-4">
+           <div className="flex justify-between items-end px-1">
+            <h3 className="font-bold text-white flex items-center gap-2"><AlertCircle size={16} className="text-orange-500"/> Relances à faire</h3>
+          </div>
+
+          <div className="bg-[#141416] border border-white/5 rounded-2xl overflow-hidden p-1">
+             {pendingInvoices.length > 0 ? pendingInvoices.map((inv) => (
+               <Link key={inv.id} href={`/invoices/${inv.id}`} className="block p-3 hover:bg-white/5 rounded-xl transition-colors mb-1">
+                 <div className="flex justify-between items-start mb-1">
+                    <span className="text-xs font-mono font-bold text-gray-400">{inv.number}</span>
+                    <span className="text-xs font-bold text-white">{inv.totalHT.toLocaleString()} €</span>
+                 </div>
+                 <p className="text-xs text-gray-500 truncate">{inv.client.name}</p>
+                 <p className="text-[10px] text-red-400 mt-1 font-medium">
+                   Échéance : {new Date(inv.dueDate).toLocaleDateString()}
+                 </p>
+               </Link>
+             )) : (
+               <div className="p-6 text-center">
+                 <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                   <CreditCard size={18} className="text-green-500"/>
+                 </div>
+                 <p className="text-xs text-gray-400">Aucune facture en retard. Tout est clean ! ✨</p>
+               </div>
+             )}
+          </div>
+
+          {/* RACCOURCIS RAPIDES */}
+          <div className="grid grid-cols-2 gap-2 mt-4">
+             <Link href="/invoices/new" className="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-center transition-colors">
+               <CreditCard size={20} className="mx-auto mb-2 text-gray-400"/>
+               <p className="text-[10px] font-bold text-gray-300">Facturer</p>
+             </Link>
+             <Link href="/timesheet" className="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-center transition-colors">
+               <Clock size={20} className="mx-auto mb-2 text-gray-400"/>
+               <p className="text-[10px] font-bold text-gray-300">Saisir Temps</p>
+             </Link>
+          </div>
+        </div>
+
       </div>
     </div>
   );

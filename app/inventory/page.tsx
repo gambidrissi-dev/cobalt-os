@@ -1,103 +1,140 @@
 import { prisma } from "../lib/prisma";
-import { createInventoryItem, borrowItem, returnItem } from "@/app/actions";
-import { Box, Camera, Ruler, User, RotateCcw, Plus } from "lucide-react";
+import { getActiveEntity } from "../actions/auth";
+import { createItem, deleteItem, borrowItem, returnItem } from "@/app/actions/inventory";
+import { 
+  Plus, Camera, Ruler, Wrench, Trash2, RotateCcw, PackageOpen
+} from "lucide-react";
+import { redirect } from "next/navigation";
 
 export default async function InventoryPage() {
-  const items = await prisma.inventoryItem.findMany({ orderBy: { category: 'asc' } });
-  const users = await prisma.user.findMany({ select: { name: true } });
+  const entityStr = await getActiveEntity();
+
+  // SÉCURITÉ : Si un petit malin essaie d'accéder à /inventory alors qu'il est sur "Cobalt +",
+  // on le redirige ou on affiche un message. Ici, on force l'affichage GLOBAL pour l'admin matériel.
+  if (entityStr !== 'GLOBAL') {
+     // Optionnel : rediriger vers le dashboard
+     // redirect('/');
+  }
+
+  // On récupère TOUT le matériel (pas de 'where' condition sur l'entité)
+  const [items, users] = await Promise.all([
+    prisma.inventoryItem.findMany({
+      orderBy: { status: 'asc' }, 
+      include: { borrower: true }
+    }),
+    prisma.user.findMany({ orderBy: { name: 'asc' } })
+  ]);
+
+  const getIcon = (category: string) => {
+    if (category === 'Camera') return <Camera size={24} className="text-purple-500"/>;
+    if (category === 'Mesure') return <Ruler size={24} className="text-blue-500"/>;
+    return <Wrench size={24} className="text-orange-500"/>;
+  };
 
   return (
-    <div style={{ backgroundColor: '#0A0A0B', minHeight: '100vh', padding: '40px', color: 'white' }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        
-        <header style={{ marginBottom: '50px' }}>
-          <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '-2px', margin: 0 }}>Parc Matériel</h1>
-          <p style={{ color: '#64748b', fontSize: '18px', marginTop: '10px' }}>Gestion de l'équipement et des emprunts</p>
-        </header>
+    <div className="space-y-8 fade-in">
+      
+      {/* HEADER CENTRALISÉ */}
+      <div className="flex flex-col md:flex-row justify-between items-end gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="p-2 bg-white/10 rounded-lg"><PackageOpen size={20} className="text-white"/></div>
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">ESPACE GROUPE</span>
+          </div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Inventaire Centralisé</h1>
+          <p className="text-gray-400">Gestion de l'ensemble du parc matériel du Collectif.</p>
+        </div>
 
-        {/* AJOUT RAPIDE */}
-        <div style={{ backgroundColor: '#141416', padding: '25px', borderRadius: '24px', border: '1px solid #1f2937', marginBottom: '40px' }}>
-          <form action={createInventoryItem} style={{ display: 'flex', gap: '15px' }}>
-            <input name="name" placeholder="Nom du matériel (ex: Sony A7IV)" required style={{ backgroundColor: '#000', border: '1px solid #1f2937', borderRadius: '12px', padding: '12px', color: 'white', flex: 2, outline: 'none' }} />
-            <select name="category" style={{ backgroundColor: '#000', border: '1px solid #1f2937', borderRadius: '12px', padding: '12px', color: 'white', flex: 1, outline: 'none' }}>
-              <option value="Media">Pôle Média</option>
-              <option value="Archi">Pôle Architecture</option>
-              <option value="Informatique">Informatique</option>
+        <div className="bg-[#141416] p-2 rounded-xl border border-white/10 w-full md:w-auto">
+          <form action={createItem} className="flex gap-2">
+            <input 
+              name="name" 
+              placeholder="Nouvel équipement..." 
+              required
+              className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-white/30 outline-none w-full md:w-64"
+            />
+            <select name="category" className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none">
+              <option value="Outillage" className="bg-black">Outillage</option>
+              <option value="Camera" className="bg-black">Caméra / Média</option>
+              <option value="Mesure" className="bg-black">Mesure / Laser</option>
+              <option value="Informatique" className="bg-black">Informatique</option>
             </select>
-            <button type="submit" style={{ backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '12px', padding: '12px 25px', fontWeight: 'bold', cursor: 'pointer' }}>
+            <button type="submit" className="bg-white text-black px-4 py-2 rounded-lg font-bold hover:bg-gray-200 transition-colors">
               <Plus size={18} />
             </button>
           </form>
         </div>
+      </div>
 
-        {/* LISTE DU MATÉRIEL */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
-          {items.map((item) => (
-            <div key={item.id} style={{ 
-              backgroundColor: '#141416', 
-              padding: '25px', 
-              borderRadius: '24px', 
-              border: '1px solid #1f2937',
-              borderTop: item.status === 'BORROWED' ? '4px solid #f59e0b' : '4px solid #10b981'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <div style={{ color: item.category === 'Media' ? '#a855f7' : '#3b82f6' }}>
-                  {item.category === 'Media' ? <Camera size={24}/> : <Ruler size={24}/>}
-                </div>
-                <span style={{ 
-                  fontSize: '10px', 
-                  fontWeight: '900', 
-                  backgroundColor: item.status === 'AVAILABLE' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                  color: item.status === 'AVAILABLE' ? '#10b981' : '#f59e0b',
-                  padding: '5px 10px',
-                  borderRadius: '6px'
-                }}>
-                  {item.status}
-                </span>
+      {/* GRILLE MATÉRIEL */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        
+        {items.length === 0 && (
+          <div className="col-span-full py-20 text-center text-gray-500 border-2 border-dashed border-white/5 rounded-2xl">
+            Le parc matériel est vide. Ajoutez des objets via le formulaire ci-dessus.
+          </div>
+        )}
+
+        {items.map((item) => (
+          <div key={item.id} className={`bg-[#141416] p-5 rounded-2xl border transition-all group relative ${
+            item.status === 'BORROWED' ? 'border-orange-500/20' : 'border-white/5 hover:border-white/20'
+          }`}>
+            
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-black/40 rounded-xl border border-white/5">
+                {getIcon(item.category)}
               </div>
-
-              <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 5px 0' }}>{item.name}</h3>
-              <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '20px' }}>{item.category}</p>
-
-              {item.status === 'BORROWED' ? (
-                <div style={{ backgroundColor: '#000', padding: '15px', borderRadius: '15px', marginBottom: '15px' }}>
-                   <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                     <User size={14}/> Détenu par : <strong>{item.borrower}</strong>
-                   </p>
-                </div>
-              ) : (
-                <p style={{ fontSize: '12px', color: '#475569', marginBottom: '15px' }}>Disponible.</p>
-              )}
-
-              {/* ACTIONS */}
-              <div style={{ display: 'flex', gap: '10px' }}>
-                {item.status === 'AVAILABLE' ? (
-                  <form action={async (formData) => {
-                    "use server";
-                    const user = formData.get("user") as string;
-                    await borrowItem(item.id, user);
-                  }} style={{ display: 'flex', width: '100%', gap: '10px' }}>
-                    <select name="user" style={{ flex: 1, backgroundColor: '#1c1c1f', border: '1px solid #1f2937', color: 'white', borderRadius: '10px', fontSize: '12px' }}>
-                      {users.map(u => <option key={u.name} value={u.name}>{u.name}</option>)}
-                    </select>
-                    <button type="submit" style={{ backgroundColor: 'white', color: 'black', border: 'none', borderRadius: '10px', padding: '8px 15px', fontSize: '12px', fontWeight: 'bold' }}>
-                      Prêter
-                    </button>
-                  </form>
-                ) : (
-                  <form action={async () => {
-                    "use server";
-                    await returnItem(item.id);
-                  }} style={{ width: '100%' }}>
-                    <button type="submit" style={{ width: '100%', backgroundColor: '#1f2937', color: 'white', border: '1px solid #374151', borderRadius: '10px', padding: '8px', fontSize: '12px', fontWeight: 'bold' }}>
-                      Marquer comme rendu
-                    </button>
-                  </form>
-                )}
+              <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                item.status === 'BORROWED' 
+                  ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20' 
+                  : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+              }`}>
+                {item.status === 'BORROWED' ? 'Emprunté' : 'Dispo'}
               </div>
             </div>
-          ))}
-        </div>
+
+            <h3 className="text-lg font-bold text-white mb-1 truncate">{item.name}</h3>
+            <div className="flex justify-between items-center mb-6">
+                <p className="text-xs text-gray-500 uppercase tracking-widest">{item.category}</p>
+                {/* On affiche à qui appartient l'objet à la base (Archi, Atelier...) si tu veux garder la traçabilité */}
+                <span className="text-[9px] text-gray-600 bg-white/5 px-1.5 py-0.5 rounded">{item.entity}</span>
+            </div>
+
+            {item.status === 'BORROWED' ? (
+              <div className="bg-orange-500/5 rounded-xl p-3 border border-orange-500/10">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center font-bold text-black text-xs">
+                    {item.borrower?.name?.charAt(0) || "?"}
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="text-xs text-gray-400">Détenteur</p>
+                    <p className="text-sm font-bold text-white truncate">{item.borrower?.name || "Inconnu"}</p>
+                  </div>
+                </div>
+                
+                <form action={returnItem.bind(null, item.id)}>
+                  <button className="w-full py-2 bg-orange-500 text-black text-xs font-bold rounded-lg hover:bg-orange-400 transition-colors flex items-center justify-center gap-2">
+                    <RotateCcw size={14}/> Retour Stock
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <form action={borrowItem} className="flex gap-2">
+                <input type="hidden" name="itemId" value={item.id} />
+                <select name="borrowerName" required className="flex-1 bg-black border border-white/10 rounded-lg px-2 py-2 text-xs text-white outline-none focus:border-white/30">
+                  <option value="">Assigner à...</option>
+                  {users.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                </select>
+                <button type="submit" className="bg-white text-black px-3 rounded-lg hover:bg-gray-200 text-xs font-bold">OK</button>
+              </form>
+            )}
+
+            <form action={deleteItem.bind(null, item.id)} className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+               <button className="text-gray-600 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+            </form>
+
+          </div>
+        ))}
       </div>
     </div>
   );
