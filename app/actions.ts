@@ -3,7 +3,7 @@
 import { prisma } from "./lib/prisma";
 import { revalidatePath } from "next/cache";
 
-// --- ACTIONS CRM ---
+// --- ACTIONS CRM (CLIENTS) ---
 export async function createClient(formData: FormData) {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
@@ -13,7 +13,7 @@ export async function createClient(formData: FormData) {
   revalidatePath("/crm");
 }
 
-// --- ACTIONS RH ---
+// --- ACTIONS RH (MEMBRES) ---
 export async function createUser(formData: FormData) {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
@@ -29,7 +29,7 @@ export async function createUser(formData: FormData) {
   }
 }
 
-// --- ACTIONS FINANCE ---
+// --- ACTIONS FINANCE (V2 : ÉDITION COMPLÈTE) ---
 export async function createQuickInvoice(formData: FormData) {
   const firstClient = await prisma.client.findFirst();
   if (!firstClient) return;
@@ -48,7 +48,31 @@ export async function createQuickInvoice(formData: FormData) {
   revalidatePath("/"); 
 }
 
-// --- ACTIONS PROJETS ---
+// NOUVEAU : Action pour sauvegarder une facture "de long en large"
+export async function updateInvoiceAction(formData: FormData) {
+  const id = formData.get("invoiceId") as string;
+  const amount = parseFloat(formData.get("amount") as string) || 0;
+  const status = formData.get("status") as string;
+  const dueDate = formData.get("dueDate") as string;
+  const notes = formData.get("notes") as string;
+
+  await prisma.invoice.update({
+    where: { id },
+    data: { 
+      totalHT: amount, 
+      status, 
+      dueDate: new Date(dueDate),
+      // Si tu as ajouté un champ notes dans ton schéma Invoice
+      // notes: notes 
+    }
+  });
+
+  revalidatePath(`/invoices/${id}`);
+  revalidatePath("/finance");
+  revalidatePath("/");
+}
+
+// --- ACTIONS PROJETS (V2 : DEEP DIVE & KANBAN) ---
 export async function createProject(formData: FormData) {
   const title = formData.get("title") as string;
   const type = formData.get("type") as string;
@@ -61,7 +85,16 @@ export async function createProject(formData: FormData) {
   revalidatePath("/projects");
 }
 
-// ACTION DE PERSONNALISATION V2
+// NOUVEAU : Action pour le Drag & Drop du Kanban
+export async function updateProjectStatus(projectId: string, newStatus: string) {
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { status: newStatus }
+  });
+  revalidatePath("/projects");
+  revalidatePath("/");
+}
+
 export async function updateProjectAction(formData: FormData) {
   const id = formData.get("projectId") as string;
   const description = formData.get("description") as string;
@@ -125,4 +158,9 @@ export async function resetDatabase() {
   await prisma.user.deleteMany();
   await prisma.inventoryItem.deleteMany();
   revalidatePath("/");
+  revalidatePath("/crm");
+  revalidatePath("/finance");
+  revalidatePath("/projects");
+  revalidatePath("/hr");
+  revalidatePath("/inventory");
 }

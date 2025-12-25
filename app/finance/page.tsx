@@ -1,10 +1,10 @@
 import { prisma } from "../lib/prisma";
 import { createQuickInvoice } from "@/app/actions";
-import { Plus, FileText, CheckCircle, Clock, AlertCircle, ArrowUpRight } from "lucide-react";
+import { Plus, FileText, CheckCircle, Clock, AlertCircle, FileDown } from "lucide-react";
 import Link from "next/link";
 
 export default async function FinancePage() {
-  // On récupère toutes les factures avec les infos du client associé
+  // Récupération des factures depuis la BDD
   const invoices = await prisma.invoice.findMany({
     orderBy: { date: 'desc' },
     include: { client: true }
@@ -19,7 +19,6 @@ export default async function FinancePage() {
           <p className="text-gray-400">Suivi de la facturation et des revenus</p>
         </div>
         
-        {/* BOUTON DE CRÉATION RAPIDE */}
         <form action={createQuickInvoice}>
           <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2 group">
             <Plus size={18} className="group-hover:rotate-90 transition-transform" />
@@ -33,37 +32,34 @@ export default async function FinancePage() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-white/5 text-gray-500 text-[10px] uppercase tracking-[0.2em] font-black">
-              <th className="p-6">Référence</th>
+              <th className="p-6">Référence (Éditer)</th>
               <th className="p-6">Client</th>
               <th className="p-6 text-right">Montant HT</th>
               <th className="p-6 text-center">Statut</th>
-              <th className="p-6 text-right">Action</th>
+              <th className="p-6 text-right">Documents</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
             {invoices.map((inv) => (
               <tr key={inv.id} className="group hover:bg-white/[0.02] transition-colors">
-                {/* LIEN VERS LE PDF */}
+                
+                {/* LIEN VERS LE COCKPIT D'ÉDITION */}
                 <td className="p-6">
                   <Link 
-                    href={`/finance/${inv.id}`} 
-                    className="flex items-center gap-3 text-white font-mono text-sm hover:text-emerald-400 transition-colors"
+                    href={`/invoices/${inv.id}`} 
+                    className="flex items-center gap-3 text-white font-mono text-sm hover:text-blue-400 transition-colors"
                   >
-                    <FileText size={16} className="text-gray-600 group-hover:text-emerald-400 transition-colors" />
+                    <FileText size={16} className="text-gray-600 group-hover:text-blue-400 transition-colors" />
                     {inv.number}
                   </Link>
                 </td>
 
                 <td className="p-6">
-                  <span className="text-gray-300 font-medium">
-                    {inv.client?.name || "Client non assigné"}
-                  </span>
+                  <span className="text-gray-300 font-medium">{inv.client?.name || "Client non assigné"}</span>
                 </td>
 
                 <td className="p-6 text-right">
-                  <span className="text-white font-bold tracking-tight">
-                    {inv.totalHT.toLocaleString('fr-FR')} €
-                  </span>
+                  <span className="text-white font-bold tracking-tight">{inv.totalHT.toLocaleString('fr-FR')} €</span>
                 </td>
 
                 <td className="p-6 text-center">
@@ -76,31 +72,19 @@ export default async function FinancePage() {
                   </span>
                 </td>
 
+                {/* LIEN CORRIGÉ VERS LA VUE PDF */}
                 <td className="p-6 text-right">
                   <Link 
-                    href={`/finance/${inv.id}`}
-                    className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-gray-500 hover:text-white transition-colors"
+                    href={`/finance/${inv.id}`} 
+                    target="_blank"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase text-gray-400 hover:text-white hover:bg-white/10 transition-all"
                   >
-                    Voir PDF <ArrowUpRight size={12} />
+                    <FileDown size={14} /> PDF
                   </Link>
                 </td>
+
               </tr>
             ))}
-            
-            {/* ÉTAT VIDE */}
-            {invoices.length === 0 && (
-              <tr>
-                <td colSpan={5} className="p-20 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <AlertCircle size={40} className="text-gray-800" />
-                    <p className="text-gray-500 text-sm">
-                      Aucune facture trouvée. <br />
-                      Créez d'abord un client pour générer votre première facture.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>

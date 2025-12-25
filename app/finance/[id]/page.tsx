@@ -1,135 +1,99 @@
-import { prisma } from "../../lib/prisma";
-import { notFound } from "next/navigation";
-import { ArrowLeft, MapPin, Mail, Globe } from "lucide-react";
+"use client"; // CRUCIAL pour corriger l'erreur de build
+
+import { useEffect, useState, use } from "react";
+import { ArrowLeft, Printer } from "lucide-react";
 import Link from "next/link";
-import { PrintButton } from "@/components/PrintButton";
 
-export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+// On utilise "use" pour déballer les params de manière asynchrone
+export default function InvoicePDFPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const [invoice, setInvoice] = useState<any>(null);
 
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: id },
-    include: { client: true }
-  });
+  // Comme c'est un client component, on récupère les données via une petite API interne ou un fetch rapide
+  useEffect(() => {
+    fetch(`/api/invoices/${id}`)
+      .then(res => res.json())
+      .then(data => setInvoice(data));
+  }, [id]);
 
-  if (!invoice) notFound();
-
-  const tva = invoice.totalHT * 0.20;
-  const ttc = invoice.totalHT + tva;
+  if (!invoice) return <div className="p-20 text-white">Chargement du document...</div>;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0B] p-4 md:p-12 print:p-0 print:bg-white transition-all">
-      
-      {/* BARRE D'OUTILS - Masquée à l'impression */}
-      <div className="max-w-[21cm] mx-auto mb-10 flex justify-between items-center print:hidden">
-        <Link href="/finance" className="flex items-center gap-2 text-gray-500 hover:text-white transition-all text-sm font-medium">
-          <ArrowLeft size={16} /> Retour aux finances
+    <div className="min-h-screen bg-white text-black p-10 font-sans">
+      {/* BARRE D'OUTILS - CACHÉE À L'IMPRESSION */}
+      <div className="mb-10 flex justify-between items-center print:hidden bg-gray-100 p-4 rounded-xl">
+        <Link href="/finance" className="flex items-center gap-2 text-gray-600 hover:text-black transition-colors no-underline">
+          <ArrowLeft size={18} /> Retour Finance
         </Link>
-        <PrintButton />
+        <button 
+          onClick={() => window.print()} 
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition-all border-none cursor-pointer"
+        >
+          <Printer size={18} /> Imprimer / Sauver en PDF
+        </button>
       </div>
 
-      {/* LA FEUILLE A4 - Forçage manuel des couleurs pour contrer le mode sombre */}
-      <div className="mx-auto w-full max-w-[21cm] bg-white shadow-2xl print:shadow-none overflow-hidden border border-white/5">
-        
-        <div className="p-12 md:p-20 flex flex-col min-h-[29.7cm] bg-white" style={{ color: '#1a1a1a' }}>
-          
-          {/* HEADER */}
-          <div className="flex justify-between items-start mb-24">
-            <div className="space-y-6">
-              <div className="bg-indigo-600 text-white w-14 h-14 flex items-center justify-center rounded-2xl font-black text-3xl shadow-xl shadow-indigo-500/20">C</div>
-              <div className="space-y-1">
-                <h1 className="text-2xl font-black uppercase tracking-tighter" style={{ color: '#1a1a1a' }}>Collectif Cobalt</h1>
-                <p className="text-[10px] text-indigo-600 font-black uppercase tracking-[0.3em]">Studio de Création & Architecture</p>
-              </div>
-            </div>
-            
-            <div className="text-right">
-              <h2 className="text-6xl font-black uppercase tracking-tighter mb-4" style={{ color: '#f1f5f9' }}>Facture</h2>
-              <div className="space-y-1">
-                <p className="font-mono font-bold text-indigo-600">REF_{invoice.number}</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#94a3b8' }}>Le {new Date(invoice.date).toLocaleDateString('fr-FR')}</p>
-              </div>
-            </div>
+      {/* DESIGN DE LA FACTURE */}
+      <div className="max-w-[800px] mx-auto border border-gray-200 p-12 bg-white shadow-lg">
+        <div className="flex justify-between items-start mb-16">
+          <div>
+            <h1 className="text-4xl font-black tracking-tighter mb-2 italic">COBALT</h1>
+            <p className="text-gray-500 text-sm uppercase tracking-widest">Studio de création</p>
           </div>
-
-          {/* ADRESSES */}
-          <div className="grid grid-cols-2 gap-20 mb-24 py-12 border-y border-slate-100">
-            <div className="space-y-6">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: '#4f46e5' }}>Émetteur</h3>
-              <div className="space-y-2">
-                <p className="font-bold text-lg" style={{ color: '#1a1a1a' }}>Collectif Cobalt</p>
-                <div className="text-xs space-y-1" style={{ color: '#64748b' }}>
-                   <p>5 Rue du Puis-le-Vlier</p>
-                   <p>86000 Poitiers, France</p>
-                   <p className="pt-2 italic text-[10px]">SIRET: 123 456 789 00012</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-right space-y-6">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: '#94a3b8' }}>Destinataire</h3>
-              <div className="space-y-2">
-                <p className="font-bold text-lg" style={{ color: '#1a1a1a' }}>{invoice.client.name}</p>
-                <div className="text-xs space-y-1" style={{ color: '#64748b' }}>
-                   <p>{invoice.client.address || "Adresse de facturation"}</p>
-                   <p className="text-indigo-600 font-medium">{invoice.client.email}</p>
-                </div>
-              </div>
-            </div>
+          <div className="text-right">
+            <h2 className="text-xl font-bold uppercase text-blue-600 mb-1">Facture</h2>
+            <p className="font-mono font-bold text-lg m-0">{invoice.number}</p>
+            <p className="text-gray-500 text-sm">{new Date(invoice.date).toLocaleDateString()}</p>
           </div>
+        </div>
 
-          {/* TABLEAU */}
-          <div className="flex-grow">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2 border-slate-900">
-                  <th className="pb-6 text-left text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: '#94a3b8' }}>Description</th>
-                  <th className="pb-6 text-right text-[10px] font-black uppercase tracking-[0.2em] w-32" style={{ color: '#94a3b8' }}>Total HT</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="py-12 border-b border-slate-100">
-                    <p className="font-bold text-xl mb-2" style={{ color: '#1a1a1a' }}>Prestation Créative Globale</p>
-                    <p className="text-sm leading-relaxed max-w-lg italic" style={{ color: '#64748b' }}>
-                      Conception et réalisation sur-mesure selon les termes du cahier des charges.
-                    </p>
-                  </td>
-                  <td className="py-12 border-b border-slate-100 text-right align-top">
-                    <span className="font-black text-2xl" style={{ color: '#1a1a1a' }}>{invoice.totalHT.toLocaleString('fr-FR')} €</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <div className="grid grid-cols-2 gap-20 mb-16">
+          <div>
+            <p className="text-[10px] uppercase font-bold text-gray-400 mb-2">Émetteur</p>
+            <p className="font-bold m-0 text-lg">Collectif Cobalt</p>
+            <p className="text-sm text-gray-600">contact@cobalt-collectif.fr</p>
           </div>
-
-          {/* TOTALS */}
-          <div className="mt-16 flex justify-end">
-            <div className="w-80 space-y-4">
-              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest px-2" style={{ color: '#94a3b8' }}>
-                <span>Base Hors Taxes</span>
-                <span style={{ color: '#1a1a1a' }}>{invoice.totalHT.toLocaleString('fr-FR')} €</span>
-              </div>
-              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest px-2" style={{ color: '#94a3b8' }}>
-                <span>TVA (20%)</span>
-                <span style={{ color: '#1a1a1a' }}>{tva.toLocaleString('fr-FR')} €</span>
-              </div>
-              <div className="bg-indigo-600 p-8 rounded-3xl flex justify-between items-center text-white shadow-2xl shadow-indigo-600/30">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em]">Total TTC</span>
-                <span className="text-4xl font-black">{ttc.toLocaleString('fr-FR')} €</span>
-              </div>
-            </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase font-bold text-gray-400 mb-2">Destinaire</p>
+            <p className="font-bold m-0 text-lg">{invoice.client?.name || "Client"}</p>
+            <p className="text-sm text-gray-600 italic">Prestation Média / Archi</p>
           </div>
+        </div>
 
-          {/* FOOTER */}
-          <div className="mt-24 pt-10 border-t border-slate-50 text-center">
-            <p className="text-[9px] font-bold uppercase tracking-tighter" style={{ color: '#cbd5e1' }}>
-              Paiement sous 30 jours — Collectif Cobalt Biarritz — www.cobalt-collectif.fr
-            </p>
+        <table className="w-full mb-16 border-collapse">
+          <thead>
+            <tr className="border-b-2 border-black">
+              <th className="text-left py-4 text-xs uppercase font-black">Désignation</th>
+              <th className="text-right py-4 text-xs uppercase font-black">Total HT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-gray-100">
+              <td className="py-8 font-medium">Forfait création et production de contenus</td>
+              <td className="py-8 text-right font-bold text-2xl">{invoice.totalHT.toLocaleString()} €</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div className="flex justify-end mb-20">
+          <div className="bg-gray-50 p-8 rounded-2xl w-72 text-right">
+            <span className="text-[10px] font-bold uppercase text-gray-400 block mb-2">Total Net à payer</span>
+            <span className="text-3xl font-black text-blue-600">{invoice.totalHT.toLocaleString()} €</span>
           </div>
+        </div>
 
+        <div className="border-t border-gray-100 pt-8 text-[10px] text-gray-400 text-center uppercase tracking-[0.3em]">
+          Document généré par Cobalt OS — 2025
         </div>
       </div>
+
+      <style jsx>{`
+        @media print {
+          .print\:hidden { display: none !important; }
+          body { background: white !important; margin: 0; }
+          .min-h-screen { padding: 0 !important; }
+        }
+      `}</style>
     </div>
   );
 }
