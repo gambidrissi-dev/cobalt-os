@@ -6,31 +6,32 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import Link from 'next/link';
-import { createProject } from '../actions'; // On importe l'action serveur
+import { createProject } from '../actions';
+// 1. IMPORT DU TYPE OFFICIEL PRISMA
+import { Project } from "@prisma/client";
 
-// On définit le type des données qu'on reçoit
-type Project = {
-  id: number;
-  title: string;
-  client: string;
-  entity: string;
-  phase: string;
-  progress: number;
-  dueDate: string | null;
-  color: string;
-};
+// 2. EXTENSION POUR LES CHAMPS UI (Calculés ou Visuels)
+// On prend tout ce qu'il y a dans "Project" et on ajoute ce qui manque pour l'affichage
+interface ProjectUI extends Project {
+  progress?: number;     // Pas en base, calculé à la volée
+  dueDate?: string | null; // Pas dans le modèle Project de base (peut-être ajouté plus tard)
+  color?: string;        // Purement front
+}
 
-export default function ProjectList({ initialProjects }: { initialProjects: Project[] }) {
+export default function ProjectList({ initialProjects }: { initialProjects: ProjectUI[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Petit helper pour la couleur si elle n'est pas définie
+  const getColor = (p: ProjectUI) => p.color || (p.entity === 'ATELIER' ? 'bg-orange-500' : 'bg-blue-500');
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      {/* MODALE DE CRÉATION CONNECTÉE */}
+      {/* MODALE DE CRÉATION */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nouveau Projet">
         <form action={async (formData) => {
-            await createProject(formData); // Appelle le serveur
-            setIsModalOpen(false); // Ferme la modale
+            await createProject(formData);
+            setIsModalOpen(false);
         }} className="space-y-4">
            
            <div>
@@ -50,13 +51,14 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
              </div>
              <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1">Client</label>
-                <input name="client" required placeholder="ex: M. Martin" className="w-full bg-[#0A0A0C] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors" />
+                {/* CORRECTION : name="clientName" pour matcher le Schema */}
+                <input name="clientName" required placeholder="ex: M. Martin" className="w-full bg-[#0A0A0C] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors" />
              </div>
            </div>
 
            <div>
               <label className="block text-xs font-bold text-gray-500 mb-1">Date de livraison</label>
-              <input name="dueDate" type="date" required className="w-full bg-[#0A0A0C] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors" />
+              <input name="dueDate" type="date" className="w-full bg-[#0A0A0C] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors" />
            </div>
 
            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-4 transition-colors">
@@ -93,24 +95,30 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
             initialProjects.map((project) => (
             <Link key={project.id} href={`/projects/${project.id}`} className="block h-full">
                 <Card className="group cursor-pointer hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50 relative overflow-hidden h-full">
-                <div className={`absolute top-0 right-0 px-3 py-1 text-[10px] font-bold text-white ${project.color} rounded-bl-xl shadow-lg`}>
+                {/* Utilisation de la couleur calculée */}
+                <div className={`absolute top-0 right-0 px-3 py-1 text-[10px] font-bold text-white ${getColor(project)} rounded-bl-xl shadow-lg`}>
                     {project.entity}
                 </div>
                 <div className="flex justify-between items-start mb-4">
-                    <Badge color="slate">{project.phase}</Badge>
+                    <Badge color="slate">{project.phase || "ESQ"}</Badge>
                     <div className="text-gray-600 hover:text-white transition-colors"><MoreHorizontal size={20} /></div>
                 </div>
                 <h3 className="text-lg font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">{project.title}</h3>
-                <div className="flex items-center gap-2 text-sm text-gray-500 mb-6"><Briefcase size={14} />{project.client}</div>
+                
+                {/* CORRECTION : clientName au lieu de client */}
+                <div className="flex items-center gap-2 text-sm text-gray-500 mb-6"><Briefcase size={14} />{project.clientName}</div>
+                
                 <div className="space-y-2 mt-auto">
-                    <div className="flex justify-between text-xs text-gray-400"><span>Progression</span><span>{project.progress}%</span></div>
+                    <div className="flex justify-between text-xs text-gray-400"><span>Progression</span><span>{project.progress || 0}%</span></div>
                     <div className="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
-                        <div className={`h-full ${project.color}`} style={{ width: `${project.progress}%` }}></div>
+                        <div className={`h-full ${getColor(project)}`} style={{ width: `${project.progress || 0}%` }}></div>
                     </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2 text-xs text-gray-600">
-                    <Calendar size={14} /> Livraison : {project.dueDate}
-                </div>
+                {project.dueDate && (
+                  <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2 text-xs text-gray-600">
+                      <Calendar size={14} /> Livraison : {project.dueDate}
+                  </div>
+                )}
                 </Card>
             </Link>
             ))

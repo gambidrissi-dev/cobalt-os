@@ -62,8 +62,8 @@ export default async function CRMPage() {
           <div className="flex-1 space-y-1 w-full">
             <label className="text-[10px] uppercase font-bold text-gray-500">Nom / Raison Sociale</label>
             <input name="name" placeholder="Ex: Mairie de Bordeaux, Mme Dupont..." required className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-pink-500" />
-          </div>
-          
+          </div> 
+        
           <div className="flex-1 space-y-1 w-full">
             <label className="text-[10px] uppercase font-bold text-gray-500">Email</label>
             <input name="email" type="email" placeholder="contact@client.com" className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-pink-500" />

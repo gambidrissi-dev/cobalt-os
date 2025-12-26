@@ -4,6 +4,7 @@ import { prisma } from "@/app/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/app/actions/auth";
+import bcrypt from "bcryptjs"; // <--- 1. IMPORT AJOUTÉ
 
 // Helper robuste (avec check insensible à la casse)
 const getRank = (user: any) => {
@@ -11,9 +12,10 @@ const getRank = (user: any) => {
 
   // 1. Nettoyage de l'email
   const cleanEmail = user.email?.trim().toLowerCase() || "";
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase(); // <--- 2. VARIABLE D'ENVIRONNEMENT
 
-  // 👑 GOD MODE : Force Rang 1
-  if (cleanEmail === "gambi.drissi@icloud.com") return 1;
+  // 👑 GOD MODE : Force Rang 1 si l'email correspond à celui du .env
+  if (adminEmail && cleanEmail === adminEmail) return 1;
 
   const role = user.role;
   if (role === 'PRESIDENT') return 1;
@@ -41,10 +43,15 @@ export async function createUser(formData: FormData) {
 
   if (!name || !email) return;
 
+  // <--- 3. HACHAGE DU MOT DE PASSE ---
+  // On ne stocke plus "cobalt123" en clair, on le sécurise.
+  const hashedPassword = await bcrypt.hash("cobalt123", 10);
+
   await prisma.user.create({
     data: {
       name, email, role, job: job || "Membre", title: title || "", allowedEntities,
-      password: "cobalt123", avatar: ""
+      password: hashedPassword, // On utilise le hash ici
+      avatar: ""
     }
   });
 

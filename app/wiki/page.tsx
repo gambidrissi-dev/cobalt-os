@@ -5,6 +5,8 @@ import {
   BookOpen, Plus, FileText, Save, Trash2, 
   ArrowLeft, Edit3, Monitor 
 } from "lucide-react";
+// 1. IMPORT DE SÉCURITÉ
+import DOMPurify from "isomorphic-dompurify";
 
 export default async function WikiPage({ searchParams }: { searchParams: Promise<{ pageId?: string; edit?: string }> }) {
   const { pageId, edit } = await searchParams;
@@ -135,11 +137,11 @@ export default async function WikiPage({ searchParams }: { searchParams: Promise
                 </form>
 
               ) : (
-                // --- MODE LECTURE ---
-                // On utilise dangerouslySetInnerHTML pour afficher le HTML stocké
+                // --- MODE LECTURE SÉCURISÉ ---
+                // 2. UTILISATION DU SANITIZER
                 <article 
                   className="prose prose-invert prose-headings:font-black prose-p:text-gray-400 prose-a:text-yellow-500 max-w-none"
-                  dangerouslySetInnerHTML={{ __html: activePage.content }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(activePage.content) }} 
                 />
               )}
               

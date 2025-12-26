@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/app/lib/prisma";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import bcrypt from "bcryptjs"; // <--- IMPÉRATIF
 
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 
@@ -14,7 +15,10 @@ export async function loginAction(formData: FormData) {
 
   const user = await prisma.user.findUnique({ where: { email } });
 
-  if (!user || user.password !== password) {
+  // Sécurité : On vérifie si l'user existe ET si le hash correspond
+  if (!user || !(await bcrypt.compare(password, user.password))) {
+    // Note: Dans une vraie app, on retournerait une erreur pour l'afficher côté client
+    // Pour simplifier ici, on redirige ou on ne fait rien (ce qui n'est pas idéal UX, mais sûr)
     return { error: "Identifiants incorrects" };
   }
 
@@ -29,14 +33,57 @@ export async function loginAction(formData: FormData) {
     path: "/",
   });
 
-  // À la connexion, on force l'entité par défaut (la première autorisée)
+  // Gestion entité par défaut
   const defaultEntity = user.allowedEntities.split(',')[0] || "GLOBAL";
   cookieStore.set("cobalt_entity", defaultEntity);
 
   redirect("/");
 }
 
-// 2. SE DÉCONNECTER
+// 2. UPDATE PASSWORD (HASHAGE)
+export async function updatePasswordAction(formData: FormData) {
+  const currentPassword = formData.get("currentPassword") as string;
+  const newPassword = formData.get("newPassword") as string;
+  
+  const user = await getCurrentUser();
+  
+  // Vérification de l'ancien mot de passe haché
+  if (!user || !(await bcrypt.compare(currentPassword, user.password))) {
+     return { error: "Mot de passe actuel incorrect" };
+  }
+
+  // Hachage du nouveau mot de passe
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await prisma.user.update({ 
+    where: { id: user.id }, 
+    data: { password: hashedPassword } 
+  });
+  
+  revalidatePath("/profile");
+  redirect("/");
+}
+
+// 3. SETUP FIRST ADMIN (HASHAGE)
+export async function createFirstAdmin(formData: FormData) {
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+  
+  // On hache le mot de passe par défaut
+  const hashedPassword = await bcrypt.hash("cobalt123", 10);
+
+  await prisma.user.create({
+    data: {
+      name, email, 
+      password: hashedPassword, // <--- HASHÉ
+      role: "PRESIDENT", job: "Fondateur", title: "Fondateur",
+      allowedEntities: "ARCHI,ATELIER,GLOBAL"
+    }
+  });
+  redirect("/login");
+}
+
+// ... Les autres fonctions (logout, getCurrentUser...) restent identiques
 export async function logoutAction() {
   const cookieStore = await cookies();
   cookieStore.delete("cobalt_session");
@@ -44,7 +91,6 @@ export async function logoutAction() {
   redirect("/login");
 }
 
-// 3. RÉCUPÉRER L'UTILISATEUR CONNECTÉ
 export async function getCurrentUser() {
   const cookieStore = await cookies();
   const userId = cookieStore.get("cobalt_session")?.value;
@@ -52,66 +98,23 @@ export async function getCurrentUser() {
   return await prisma.user.findUnique({ where: { id: userId } });
 }
 
-// 4. RÉCUPÉRER L'ENTITÉ ACTIVE (SÉCURISÉE)
 export async function getActiveEntity() {
   const cookieStore = await cookies();
   const user = await getCurrentUser();
-
-  // Si pas d'user, pas d'entité
   if (!user) return "GLOBAL";
-
   const requestedEntity = cookieStore.get("cobalt_entity")?.value || "GLOBAL";
   const allowedEntities = user.allowedEntities.split(',');
-
-  // SÉCURITÉ : Si l'user essaie d'accéder à GLOBAL ou autre chose sans droit
-  // On vérifie si l'entité demandée est dans sa liste OU s'il a le droit "GLOBAL"
   const hasAccess = allowedEntities.includes("GLOBAL") || allowedEntities.includes(requestedEntity);
-
-  if (hasAccess) {
-    return requestedEntity;
-  } else {
-    // Si pas d'accès, on le force sur sa première entité autorisée (ex: ARCHI)
-    return allowedEntities[0] || "ARCHI";
-  }
+  return hasAccess ? requestedEntity : (allowedEntities[0] || "ARCHI");
 }
 
-// 5. CHANGER D'ENTITÉ (SWITCH)
 export async function switchEntityAction(entity: string) {
   const cookieStore = await cookies();
   const user = await getCurrentUser();
-
   if (!user) return;
-
   const allowedEntities = user.allowedEntities.split(',');
-
-  // On vérifie le droit avant d'appliquer le changement
   if (allowedEntities.includes("GLOBAL") || allowedEntities.includes(entity)) {
     cookieStore.set("cobalt_entity", entity);
   }
-  
   redirect("/"); 
-}
-
-// 6. UPDATE PASSWORD
-export async function updatePasswordAction(formData: FormData) {
-  const currentPassword = formData.get("currentPassword") as string;
-  const newPassword = formData.get("newPassword") as string;
-  const user = await getCurrentUser();
-  if (!user || user.password !== currentPassword) return { error: "Erreur mot de passe" };
-  await prisma.user.update({ where: { id: user.id }, data: { password: newPassword } });
-  revalidatePath("/profile");
-  redirect("/");
-}
-
-// 7. SETUP FIRST ADMIN
-export async function createFirstAdmin(formData: FormData) {
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  await prisma.user.create({
-    data: {
-      name, email, password: "cobalt123", role: "PRESIDENT", job: "Fondateur", title: "Fondateur",
-      allowedEntities: "ARCHI,ATELIER,GLOBAL"
-    }
-  });
-  redirect("/login");
 }

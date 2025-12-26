@@ -84,6 +84,7 @@ export default async function LoginPage() {
                             <input 
                               name="password" 
                               type="password" 
+                              required
                               placeholder="Mot de passe" 
                               className="w-full bg-white/10 border border-white/20 rounded-lg py-2 pl-8 pr-2 text-xs text-white outline-none focus:border-white/50"
                               autoFocus={false} // Empêche le focus auto qui scrolle
