@@ -1,15 +1,17 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  // 1. On continue d'ignorer les erreurs de code pour que ça passe
   typescript: {
-    // !! IMPORTANT !!
-    // Ignore les erreurs de type pour permettre le déploiement
-    // même si le code n'est pas parfait.
     ignoreBuildErrors: true,
   },
   eslint: {
-    // Ignore les erreurs de style
     ignoreDuringBuilds: true,
+  },
+  // 2. LA SOLUTION MAGIQUE pour l'erreur "jsdom"
+  experimental: {
+    serverComponentsExternalPackages: ["jsdom"],
   },
 };
 
-export default nextConfig; // ou module.exports = nextConfig; si vous n'utilisez pas "mjs"
+export default nextConfig;
