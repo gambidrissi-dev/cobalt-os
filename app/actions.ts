@@ -33,7 +33,7 @@ export async function createUser(formData: FormData) {
     email,
     role: role || "membre",
     password: "temp_password_cobalt",
-    allowedEntities: [] // <--- Ajoutez cette ligne (ou mettez ["Cobalt"] selon votre logique)
+    allowedEntities: "Aucune" // <--- Ajoutez cette ligne (ou mettez ["Cobalt"] selon votre logique)
 }
     });
     revalidatePath("/hr");
