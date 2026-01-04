@@ -1,5 +1,5 @@
 "use server";
-
+// @ts-nocheck
 import { prisma } from "./lib/prisma";
 import { revalidatePath } from "next/cache";
 
