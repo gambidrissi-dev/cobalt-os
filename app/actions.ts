@@ -91,7 +91,7 @@ export async function createProject(formData: FormData) {
   const clientId = formData.get("clientId") as string;
   if (!title) return;
   await prisma.project.create({
-    data: { title, status: "TODO", clientId }
+    data: { title, status: "TODO" }
   });
   revalidatePath("/projects");
 }
