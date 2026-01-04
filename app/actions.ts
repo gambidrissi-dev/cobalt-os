@@ -9,7 +9,14 @@ export async function createClient(formData: FormData) {
   const email = formData.get("email") as string;
   const type = formData.get("type") as string;
   if (!name) return;
-  await prisma.client.create({ data: { name, email, type } });
+await prisma.client.create({
+  data: {
+    name,
+    email,
+    type,
+    entity: "Company" // ou une variable, selon votre logique
+  }
+});
   revalidatePath("/crm");
 }
 
