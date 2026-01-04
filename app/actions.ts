@@ -50,9 +50,10 @@ export async function createQuickInvoice(formData: FormData) {
   dueDate.setDate(dueDate.getDate() + 30);
   await prisma.invoice.create({
     data: {
-      number: `FAC-${Date.now().toString().slice(-6)}`,
-      status: "DRAFT",
-      totalHT: 0,
+  entity: "Cobalt", // <--- AJOUTEZ CETTE LIGNE (ou "")
+  number: `FAC-${Date.now().toString().slice(-6)}`,
+  status: "DRAFT",
+  totalHT: 0,
       clientId: firstClient.id,
       dueDate: dueDate 
     }
