@@ -1,16 +1,12 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  // 1. On continue d'ignorer les erreurs de code
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true, // On veut que ça déploie même s'il manque une virgule
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
-  
-  // 2. LA CORRECTION : On met ça à la racine, pas dans "experimental"
-  serverExternalPackages: ["jsdom"],
+  serverExternalPackages: ["jsdom"], // Crucial pour le Wiki/Tiptap
 };
 
 export default nextConfig;
