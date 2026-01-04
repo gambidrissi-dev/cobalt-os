@@ -28,7 +28,13 @@ export async function createUser(formData: FormData) {
   if (!name || !email) return;
   try {
     await prisma.user.create({
-      data: { name, email, role: role || "membre", password: "temp_password_cobalt" }
+      data: {
+    name,
+    email,
+    role: role || "membre",
+    password: "temp_password_cobalt",
+    allowedEntities: [] // <--- Ajoutez cette ligne (ou mettez ["Cobalt"] selon votre logique)
+}
     });
     revalidatePath("/hr");
   } catch (error) {
