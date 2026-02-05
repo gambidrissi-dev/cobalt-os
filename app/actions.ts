@@ -1,5 +1,4 @@
 "use server";
-// @ts-nocheck
 import { prisma } from "./lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -162,6 +161,10 @@ export async function deleteClient(id: string) {
 }
 
 export async function resetDatabase() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error("Action interdite en production");
+  }
+
   await prisma.invoiceItem.deleteMany();
   await prisma.task.deleteMany();
   await prisma.invoice.deleteMany();
