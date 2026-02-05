@@ -14,8 +14,8 @@ import { Project } from "@prisma/client";
 // On prend tout ce qu'il y a dans "Project" et on ajoute ce qui manque pour l'affichage
 interface ProjectUI extends Project {
   progress?: number;     // Pas en base, calculé à la volée
-  dueDate?: string | null; // Pas dans le modèle Project de base (peut-être ajouté plus tard)
   color?: string;        // Purement front
+  phase?: string;        // Ajout pour éviter l'erreur si 'phase' n'est pas dans le modèle
 }
 
 export default function ProjectList({ initialProjects }: { initialProjects: ProjectUI[] }) {
@@ -116,7 +116,7 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
                 </div>
                 {project.dueDate && (
                   <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2 text-xs text-gray-600">
-                      <Calendar size={14} /> Livraison : {project.dueDate}
+                      <Calendar size={14} /> Livraison : {new Date(project.dueDate).toLocaleDateString()}
                   </div>
                 )}
                 </Card>

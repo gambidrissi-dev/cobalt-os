@@ -38,7 +38,7 @@ export async function createUser(formData: FormData) {
   const role = formData.get("role") as string;
   const job = formData.get("job") as string;
   const title = formData.get("title") as string;
-  const entities = formData.getAll("entities") as string[]; 
+  const entities = formData.getAll("entities").map(e => e.toString());
   const allowedEntities = entities.join(",");
 
   if (!name || !email) return;
@@ -85,7 +85,7 @@ export async function updateUser(formData: FormData) {
   const role = formData.get("role") as string;
   const job = formData.get("job") as string;
   const title = formData.get("title") as string;
-  const entities = formData.getAll("entities") as string[];
+  const entities = formData.getAll("entities").map(e => e.toString());
   const allowedEntities = entities.join(",");
 
   await prisma.user.update({

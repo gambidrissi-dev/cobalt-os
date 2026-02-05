@@ -206,7 +206,7 @@ export async function assignUserToProject(formData: FormData) {
       // Si tu as une relation Many-to-Many ou un champ spécifique
       // Ici on suppose que tu veux simplement mettre à jour une note ou un champ dédié
       // Pour une vraie relation, il faudrait modifier le schéma Prisma
-      notes: { set: `Responsable : ${userId}` } 
+      notes: `Responsable : ${userId}`
     }
   });
 

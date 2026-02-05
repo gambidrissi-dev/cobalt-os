@@ -161,7 +161,7 @@ export default async function HRPage() {
                 </div>
 
                 <div className="flex justify-center gap-1 mt-3 flex-wrap">
-                  {user.allowedEntities.split(',').filter(Boolean).map(e => (
+                  {(user.allowedEntities || "").split(',').filter(Boolean).map(e => (
                     <span key={e} className="text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 border border-white/5">
                       {e === 'GLOBAL' ? 'COBALT' : e}
                     </span>
