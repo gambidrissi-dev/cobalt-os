@@ -156,13 +156,16 @@ export async function resetDatabase() {
     throw new Error("Action interdite en production");
   }
 
+  // On supprime d'abord les enfants (dépendances)
+  await prisma.timeLog.deleteMany();
   await prisma.invoiceItem.deleteMany();
   await prisma.task.deleteMany();
   await prisma.invoice.deleteMany();
   await prisma.project.deleteMany();
   await prisma.client.deleteMany();
-  await prisma.user.deleteMany();
   await prisma.inventoryItem.deleteMany();
+  await prisma.service.deleteMany();
+  await prisma.user.deleteMany();
   revalidatePath("/");
   revalidatePath("/crm");
   revalidatePath("/finance");

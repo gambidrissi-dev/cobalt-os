@@ -3,12 +3,27 @@
 import { prisma } from "@/app/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+// Helper pour convertir "1h30", "1:30" ou "1,5" en décimal
+function parseDuration(input: string): number {
+  if (!input) return 0;
+  const clean = input.toString().toLowerCase().trim().replace(',', '.');
+  
+  if (clean.includes('h') || clean.includes(':')) {
+    const separator = clean.includes('h') ? 'h' : ':';
+    const parts = clean.split(separator);
+    const hours = parseFloat(parts[0]) || 0;
+    const minutes = parseFloat(parts[1]) || 0;
+    return hours + (minutes / 60);
+  }
+  return parseFloat(clean) || 0;
+}
+
 // Saisir un temps (ou le mettre à jour s'il existe déjà pour ce jour/projet/user)
 export async function logTime(formData: FormData) {
   const projectId = formData.get("projectId") as string;
   const userId = formData.get("userId") as string;
   const dateStr = formData.get("date") as string;
-  const duration = parseFloat(formData.get("duration")?.toString() || "0") || 0;
+  const duration = parseDuration(formData.get("duration") as string);
 
   if (!projectId || !userId || !dateStr) return;
 

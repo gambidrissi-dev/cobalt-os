@@ -68,7 +68,12 @@ export default async function TimesheetPage() {
       l.projectId === projectId && 
       new Date(l.date).toDateString() === date.toDateString()
     );
-    return log ? log.duration : "";
+    
+    if (!log) return "";
+    // Formatage inverse : 1.5 -> "1h30" pour l'affichage
+    const h = Math.floor(log.duration);
+    const m = Math.round((log.duration - h) * 60);
+    return m > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${h}`;
   };
 
   // Calcul du total de la semaine
@@ -129,8 +134,7 @@ export default async function TimesheetPage() {
                       <div className="w-full h-full relative group">
                         <input 
                           name="duration"
-                          type="number" 
-                          step="0.25" 
+                          type="text" 
                           placeholder="-"
                           defaultValue={getDuration(project.id, date)}
                           className="w-full h-full bg-transparent text-center font-mono font-bold text-gray-300 focus:text-pink-500 outline-none hover:bg-white/5 focus:bg-white/10 transition-colors"
@@ -157,7 +161,7 @@ export default async function TimesheetPage() {
       </div>
 
       <p className="text-center text-xs text-gray-500 mt-4">
-        💡 Astuce : Tapez votre temps (ex: 1.5 pour 1h30) et appuyez sur <strong>Entrée</strong> pour sauvegarder.
+        💡 Astuce : Tapez votre temps (ex: <strong>1h30</strong>, <strong>1:30</strong> ou <strong>1.5</strong>) et appuyez sur <strong>Entrée</strong>.
       </p>
     </div>
   );
