@@ -11,11 +11,14 @@ import { createProject } from '../actions';
 import { Project } from "@prisma/client";
 
 // 2. EXTENSION POUR LES CHAMPS UI (Calculés ou Visuels)
-// On prend tout ce qu'il y a dans "Project" et on ajoute ce qui manque pour l'affichage
-interface ProjectUI extends Project {
+// On utilise Omit pour redéfinir les dates en string (car elles sont sérialisées par Next.js)
+type ProjectUI = Omit<Project, 'dueDate' | 'createdAt' | 'updatedAt'> & {
+  dueDate: string | null;
+  createdAt: string;
+  updatedAt: string;
   progress?: number;     // Pas en base, calculé à la volée
   color?: string;        // Purement front
-  phase?: string;        // Ajout pour éviter l'erreur si 'phase' n'est pas dans le modèle
+  phase?: string;
 }
 
 export default function ProjectList({ initialProjects }: { initialProjects: ProjectUI[] }) {

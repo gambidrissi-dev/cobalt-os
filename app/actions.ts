@@ -1,19 +1,22 @@
 "use server";
 import { prisma } from "./lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getActiveEntity } from "./actions/auth";
 
 // --- ACTIONS CRM (CLIENTS) ---
 export async function createClient(formData: FormData) {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const type = formData.get("type") as string;
+  const entity = await getActiveEntity();
+
   if (!name) return;
 await prisma.client.create({
   data: {
     name,
     email,
     type,
-    entity: "Company" // ou une variable, selon votre logique
+    entity: entity || "GLOBAL"
   }
 });
   revalidatePath("/crm");
@@ -23,11 +26,12 @@ await prisma.client.create({
 export async function createQuickInvoice(formData: FormData) {
   const firstClient = await prisma.client.findFirst();
   if (!firstClient) return;
+  const entity = await getActiveEntity();
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 30);
   await prisma.invoice.create({
     data: {
-  entity: "Cobalt", // <--- AJOUTEZ CETTE LIGNE (ou "")
+      entity: entity || "GLOBAL",
   number: `FAC-${Date.now().toString().slice(-6)}`,
   status: "DRAFT",
   totalHT: 0,
@@ -66,6 +70,7 @@ export async function createProject(formData: FormData) {
   const entity = formData.get("entity") as string;
   const clientName = formData.get("clientName") as string;
   const dueDateStr = formData.get("dueDate") as string;
+  const activeEntity = await getActiveEntity();
 
   if (!title) return;
 
@@ -73,7 +78,7 @@ export async function createProject(formData: FormData) {
     data: { 
       title, 
       status: "TODO",
-      entity: entity || "GLOBAL",
+      entity: entity || activeEntity || "GLOBAL",
       clientName: clientName || "",
       dueDate: dueDateStr ? new Date(dueDateStr) : null
     }
@@ -203,10 +208,7 @@ export async function assignUserToProject(formData: FormData) {
   await prisma.project.update({
     where: { id: projectId },
     data: { 
-      // Si tu as une relation Many-to-Many ou un champ spécifique
-      // Ici on suppose que tu veux simplement mettre à jour une note ou un champ dédié
-      // Pour une vraie relation, il faudrait modifier le schéma Prisma
-      notes: `Responsable : ${userId}`
+      notes: `Responsable assigné : ${userId}`
     }
   });
 
