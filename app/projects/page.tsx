@@ -1,13 +1,18 @@
 import { prisma } from "../lib/prisma";
 import { getActiveEntity } from "../actions/auth";
 import ProjectList from "./ProjectList";
+import { redirect } from "next/navigation";
 
 export default async function ProjectsPage() {
   const entityStr = await getActiveEntity();
-  const whereCondition = entityStr === 'GLOBAL' ? {} : { entity: entityStr };
+  
+  // SÉCURITÉ : Le Global ne sert qu'au Dashboard. Pas de liste de projets globale ici.
+  if (entityStr === 'GLOBAL') {
+    redirect('/');
+  }
 
   const projects = await prisma.project.findMany({
-    where: whereCondition,
+    where: { entity: entityStr },
     orderBy: { createdAt: 'desc' }
   });
 

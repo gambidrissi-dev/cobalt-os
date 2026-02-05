@@ -12,11 +12,11 @@ import { switchEntityAction, logoutAction } from '@/app/actions/auth';
 
 // ... (Garde la constante ENTITIES telle quelle) ...
 const ENTITIES = {
-  GLOBAL: { label: 'Vue Globale (Admin)', color: 'bg-gray-100 text-black', border: 'border-gray-500' },
+  GLOBAL: { label: 'Collectif Cobalt', color: 'bg-gray-100 text-black', border: 'border-gray-500' },
   // LES 3 MICRO-ENTREPRISES (Indépendantes)
-  ARCHI: { label: 'Micro Archi 1', color: 'bg-blue-600 text-white', border: 'border-blue-600' },
-  ATELIER: { label: "Micro Archi 2", color: 'bg-orange-500 text-white', border: 'border-orange-500' },
-  STUDIO: { label: 'Micro Archi 3', color: 'bg-emerald-600 text-white', border: 'border-emerald-600' },
+  ARCHI: { label: 'Micro Gambi', color: 'bg-blue-600 text-white', border: 'border-blue-600' },
+  ATELIER: { label: "Micro Lola", color: 'bg-orange-500 text-white', border: 'border-orange-500' },
+  STUDIO: { label: 'Micro Lou-Ann', color: 'bg-emerald-600 text-white', border: 'border-emerald-600' },
   // L'ESPACE COMMUN
   MEDIA: { label: 'Cobalt Média (Collectif)', color: 'bg-purple-600 text-white', border: 'border-purple-600' },
 };
@@ -118,7 +118,14 @@ export default function Sidebar({ currentEntity, currentUser }: { currentEntity:
         <p className="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 mt-4">Menu Principal</p>
         
         {MENU.map((item) => {
-          if (item.href === '/inventory' && currentEntity !== 'GLOBAL') {
+          // 1. Si on est sur le COLLECTIF (GLOBAL), on ne veut que le Dashboard et les RH
+          // "uniquement une page dashboard reunissant les chiffres ... et la partie RH"
+          if (currentEntity === 'GLOBAL' && !['/', '/hr'].includes(item.href)) {
+            return null;
+          }
+
+          // 2. L'inventaire est masqué sur le Global (déjà géré au dessus), mais on l'affiche ailleurs
+          if (item.href === '/inventory' && currentEntity === 'GLOBAL') {
             return null;
           }
           const isActive = pathname === item.href;

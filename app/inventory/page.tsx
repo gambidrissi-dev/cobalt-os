@@ -9,11 +9,10 @@ import { redirect } from "next/navigation";
 export default async function InventoryPage() {
   const entityStr = await getActiveEntity();
 
-  // SÉCURITÉ : Si un petit malin essaie d'accéder à /inventory alors qu'il est sur "Cobalt +",
-  // on le redirige ou on affiche un message. Ici, on force l'affichage GLOBAL pour l'admin matériel.
-  if (entityStr !== 'GLOBAL') {
-     // Optionnel : rediriger vers le dashboard
-     // redirect('/');
+  // SÉCURITÉ : Le Global est réservé au Dashboard/RH.
+  // L'inventaire est géré dans les espaces opérationnels (ex: Média).
+  if (entityStr === 'GLOBAL') {
+     redirect('/');
   }
 
   // On récupère TOUT le matériel (pas de 'where' condition sur l'entité)

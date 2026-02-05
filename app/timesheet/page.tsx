@@ -2,6 +2,7 @@ import { prisma } from "../lib/prisma";
 import { getActiveEntity, getCurrentUser } from "../actions/auth"; // <--- 1. IMPORT AJOUTÉ
 import { logTime } from "@/app/actions/timesheet";
 import { Clock, Save } from "lucide-react";
+import { redirect } from "next/navigation";
 
 // Fonction pour générer les dates de la semaine actuelle
 function getCurrentWeek() {
@@ -36,10 +37,15 @@ export default async function TimesheetPage() {
     );
   }
 
+  // SÉCURITÉ : Pas de saisie de temps en Global
+  if (entity === 'GLOBAL') {
+    redirect('/');
+  }
+
   // 1. Récupérer les projets ACTIFS de l'entité
   const projects = await prisma.project.findMany({
     where: { 
-      entity: entity === 'GLOBAL' ? {} : entity,
+      entity: entity,
       status: 'IN_PROGRESS' 
     }
   });

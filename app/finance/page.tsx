@@ -3,15 +3,20 @@ import { createNextInvoice } from "@/app/actions/invoice";
 import { Plus, FileText, FileDown } from "lucide-react";
 import Link from "next/link";
 import { getActiveEntity } from "@/app/actions/auth"; // On ajoute le filtrage par entité
+import { redirect } from "next/navigation";
 
 export default async function FinancePage() {
   // 1. On récupère l'entité active (Archi vs Atelier)
   const entityStr = await getActiveEntity();
-  const whereCondition = entityStr === 'GLOBAL' ? {} : { entity: entityStr };
+  
+  // SÉCURITÉ : Pas de finance en Global (Dashboard uniquement)
+  if (entityStr === 'GLOBAL') {
+    redirect('/');
+  }
 
   // 2. On récupère les factures filtrées
   const invoices = await prisma.invoice.findMany({
-    where: whereCondition,
+    where: { entity: entityStr },
     orderBy: { createdAt: 'desc' }, // <--- CORRECTION ICI : 'date' devient 'createdAt'
     include: { client: true }
   });

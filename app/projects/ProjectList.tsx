@@ -53,9 +53,9 @@ export default function ProjectList({ initialProjects, currentEntity }: { initia
                     </div>
                 ) : (
                     <select name="entity" className="w-full bg-[#0A0A0C] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors">
-                        <option value="ARCHI">Micro Archi 1</option>
-                        <option value="ATELIER">Micro Archi 2</option>
-                        <option value="STUDIO">Micro Archi 3</option>
+                        <option value="ARCHI">Micro Gambi</option>
+                        <option value="ATELIER">Micro Lola</option>
+                        <option value="STUDIO">Micro Lou-Ann</option>
                         <option value="MEDIA">Cobalt Média</option>
                     </select>
                 )}
