@@ -111,6 +111,7 @@ model Project {
   invoices    Invoice[]
   wikiPages   WikiPage[]
   files       File[]
+  users       User[]
 }
 
 model File {
