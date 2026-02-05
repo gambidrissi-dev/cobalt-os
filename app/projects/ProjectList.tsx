@@ -21,11 +21,11 @@ type ProjectUI = Omit<Project, 'dueDate' | 'createdAt' | 'updatedAt'> & {
   phase?: string;
 }
 
-export default function ProjectList({ initialProjects }: { initialProjects: ProjectUI[] }) {
+export default function ProjectList({ initialProjects, currentEntity }: { initialProjects: ProjectUI[], currentEntity: string }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Petit helper pour la couleur si elle n'est pas définie
-  const getColor = (p: ProjectUI) => p.color || (p.entity === 'ATELIER' ? 'bg-orange-500' : 'bg-blue-500');
+  const getColor = (p: ProjectUI) => p.color || (p.entity === 'MEDIA' ? 'bg-purple-600' : p.entity === 'ATELIER' ? 'bg-orange-500' : p.entity === 'STUDIO' ? 'bg-emerald-600' : 'bg-blue-500');
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -45,12 +45,20 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
            <div className="grid grid-cols-2 gap-4">
              <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1">Entité</label>
-                <select name="entity" className="w-full bg-[#0A0A0C] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors">
-                   <option value="ARCHI">Cobalt Archi</option>
-                   <option value="ATELIER">L'Atelier</option>
-                   <option value="SCI">Patrimoine</option>
-                   <option value="ASSO">Association</option>
-                </select>
+                {/* UX INTELLIGENTE : Si on est dans une entité spécifique, on force le choix */}
+                {currentEntity !== 'GLOBAL' ? (
+                    <div className="w-full bg-[#141416] border border-white/10 rounded-lg p-3 text-gray-400 cursor-not-allowed">
+                        <input type="hidden" name="entity" value={currentEntity} />
+                        {currentEntity} (Verrouillé)
+                    </div>
+                ) : (
+                    <select name="entity" className="w-full bg-[#0A0A0C] border border-white/10 rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors">
+                        <option value="ARCHI">Micro Archi 1</option>
+                        <option value="ATELIER">Micro Archi 2</option>
+                        <option value="STUDIO">Micro Archi 3</option>
+                        <option value="MEDIA">Cobalt Média</option>
+                    </select>
+                )}
              </div>
              <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1">Client</label>

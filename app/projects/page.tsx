@@ -24,6 +24,6 @@ export default async function ProjectsPage() {
   }));
 
   return (
-    <ProjectList initialProjects={serializedProjects} />
+    <ProjectList initialProjects={serializedProjects} currentEntity={entityStr} />
   );
 }

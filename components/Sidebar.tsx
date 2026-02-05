@@ -12,11 +12,13 @@ import { switchEntityAction, logoutAction } from '@/app/actions/auth';
 
 // ... (Garde la constante ENTITIES telle quelle) ...
 const ENTITIES = {
-  GLOBAL: { label: 'Collectif Cobalt', color: 'bg-gray-100 text-black', border: 'border-gray-500' },
-  ARCHI: { label: 'Cobalt +', color: 'bg-blue-600 text-white', border: 'border-blue-600' },
-  ATELIER: { label: "L'Atelier de Cobalt", color: 'bg-orange-500 text-white', border: 'border-orange-500' },
-  SCI: { label: 'Cobalt Patrimoine', color: 'bg-emerald-600 text-white', border: 'border-emerald-600' },
-  FONDATION: { label: 'Bleu de Cobalt', color: 'bg-indigo-600 text-white', border: 'border-indigo-600' },
+  GLOBAL: { label: 'Vue Globale (Admin)', color: 'bg-gray-100 text-black', border: 'border-gray-500' },
+  // LES 3 MICRO-ENTREPRISES (Indépendantes)
+  ARCHI: { label: 'Micro Archi 1', color: 'bg-blue-600 text-white', border: 'border-blue-600' },
+  ATELIER: { label: "Micro Archi 2", color: 'bg-orange-500 text-white', border: 'border-orange-500' },
+  STUDIO: { label: 'Micro Archi 3', color: 'bg-emerald-600 text-white', border: 'border-emerald-600' },
+  // L'ESPACE COMMUN
+  MEDIA: { label: 'Cobalt Média (Collectif)', color: 'bg-purple-600 text-white', border: 'border-purple-600' },
 };
 
 // ... (Garde la constante MENU telle quelle) ...
@@ -76,6 +78,10 @@ export default function Sidebar({ currentEntity, currentUser }: { currentEntity:
 
           {isMenuOpen && (
             <div className="absolute top-full left-0 w-full mt-2 bg-[#141416] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95">
+              
+              {/* Petit header pour séparer visuellement */}
+              <div className="px-4 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-white/5">Mes Espaces</div>
+
               {Object.entries(ENTITIES).map(([key, data]) => {
                 
                 // --- FILTRE DU MENU ---
