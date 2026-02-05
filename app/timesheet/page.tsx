@@ -71,13 +71,22 @@ export default async function TimesheetPage() {
     
     if (!log) return "";
     // Formatage inverse : 1.5 -> "1h30" pour l'affichage
-    const h = Math.floor(log.duration);
-    const m = Math.round((log.duration - h) * 60);
-    return m > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${h}`;
+    let h = Math.floor(log.duration);
+    let m = Math.round((log.duration - h) * 60);
+    if (m === 60) { h++; m = 0; }
+    return m > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${h}h`;
   };
 
   // Calcul du total de la semaine
   const weeklyTotal = logs.reduce((acc, curr) => acc + curr.duration, 0);
+
+  // Helper pour afficher le total proprement (ex: 10.5 -> 10h30) sans décimales
+  const formatTotal = (val: number) => {
+    let h = Math.floor(val);
+    let m = Math.round((val - h) * 60);
+    if (m === 60) { h++; m = 0; } // Gestion de l'arrondi supérieur
+    return m > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${h}h`;
+  };
 
   return (
     <div className="space-y-8 fade-in">
@@ -93,7 +102,7 @@ export default async function TimesheetPage() {
         
         <div className="bg-[#141416] px-6 py-3 rounded-2xl border border-white/10 text-right">
           <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Total Semaine</p>
-          <p className="text-2xl font-black text-white">{weeklyTotal} h</p>
+          <p className="text-2xl font-black text-white">{formatTotal(weeklyTotal)}</p>
         </div>
       </div>
 

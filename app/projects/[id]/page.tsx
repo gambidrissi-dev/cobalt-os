@@ -28,6 +28,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const totalHours = project.timeLogs.reduce((acc, log) => acc + log.duration, 0);
   const progressPercent = project.budget > 0 ? (totalInvoiced / project.budget) * 100 : 0;
 
+  // Helper pour affichage propre (ex: 10.5 -> 10h30)
+  const formatHours = (val: number) => {
+    let h = Math.floor(val);
+    let m = Math.round((val - h) * 60);
+    if (m === 60) { h++; m = 0; }
+    return m > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${h}h`;
+  };
+
   // Récupérer les users pour l'assignation des tâches (simplifié)
   const users = await prisma.user.findMany();
 
@@ -146,7 +154,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
              <div className="flex items-center gap-2 mb-4 text-pink-500">
                <Clock size={18}/> <h3 className="font-bold text-white">Temps passé</h3>
              </div>
-             <p className="text-3xl font-black text-white mb-1">{totalHours} <span className="text-sm font-medium text-gray-500">heures</span></p>
+             <p className="text-3xl font-black text-white mb-1">{formatHours(totalHours)}</p>
              <p className="text-xs text-gray-500">
                Soit environ <span className="text-white font-bold">{Math.round(totalHours / 8)} jours</span> de travail.
              </p>
