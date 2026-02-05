@@ -17,17 +17,19 @@ model User {
   name            String
   email           String    @unique
   password        String
-  role            String    // PRESIDENT, DG, ASSOCIE, SALARIE, STAGIAIRE
+  role            String    // 'admin' | 'guest' (Evolution du système de rôles)
   job             String?
   title           String?
   avatar          String?
   allowedEntities String?   // ex: "ARCHI,ATELIER" (Legacy/Simple Auth)
+  
+  organizationId  String?   // Lien direct vers l'organisation principale
+  organization    Company?  @relation("UserOrganization", fields: [organizationId], references: [id])
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   // Relations
-  companies       Company[] // Accès aux entreprises (Many-to-Many)
   projects        Project[] // Chef de projet ou assigné
   tasks           Task[]
   timeLogs        TimeLog[]
@@ -35,21 +37,46 @@ model User {
   inventory       InventoryItem[]
 }
 
+// Correspond à la table "organizations" demandée
 model Company {
   id          String   @id @default(cuid())
   name        String   // ex: "Micro Gambi"
   code        String   @unique // ex: "ARCHI"
   logo        String?
+  
+  // Gestion Financière (Architect's Touch)
+  balance     Float    @default(0)
+  isCollective Boolean @default(false) // True pour "Collectif Cobalt"
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations Multi-tenant
-  users       User[]
+  primaryUsers User[]   @relation("UserOrganization")
   projects    Project[]
   files       File[]
   invoices    Invoice[]
   clients     Client[]
+  
+  // Transactions (Versements au collectif, etc.)
+  txFrom      Transaction[] @relation("TxFrom")
+  txTo        Transaction[] @relation("TxTo")
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  amount      Float
+  description String
+  date        DateTime @default(now())
+  
+  fromId      String?
+  from        Company? @relation("TxFrom", fields: [fromId], references: [id])
+  
+  toId        String?
+  to          Company? @relation("TxTo", fields: [toId], references: [id])
+  
+  type        String   // 'CONTRIBUTION', 'PAYMENT', 'TRANSFER'
+  status      String   // 'PENDING', 'COMPLETED'
 }
 
 // --- MODULES ---
@@ -89,11 +116,12 @@ model Project {
 model File {
   id                    String   @id @default(cuid())
   name                  String
-  realPath              String   @map("chemin_reel")
+  path                  String   @map("chemin_reel") // Renommé pour matcher la demande
   size                  Int
   mimeType              String
   
-  isSharedWithCollective Boolean @default(false) @map("is_shared_with_collective")
+  // Correspond à is_public dans la demande (partagé au sein de l'OS)
+  isPublic              Boolean @default(false) @map("is_public")
 
   ownerId               String   @map("owner_id")
   owner                 User     @relation("FileOwner", fields: [ownerId], references: [id])
@@ -106,6 +134,16 @@ model File {
 
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  start       DateTime
+  end         DateTime?
+  allDay      Boolean  @default(false)
+  isShared    Boolean  @default(false) // Visible par tout le collectif
+  createdAt   DateTime @default(now())
 }
 
 model Client {
