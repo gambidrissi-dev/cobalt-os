@@ -38,8 +38,7 @@ export default function Sidebar({ currentEntity, currentUser }: { currentEntity:
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
-  // @ts-ignore
-  const entityStyle = ENTITIES[currentEntity] || ENTITIES.GLOBAL;
+  const entityStyle = ENTITIES[currentEntity as keyof typeof ENTITIES] || ENTITIES.GLOBAL;
 
   // --- FILTRE DE SÉCURITÉ ---
   // On récupère la liste des accès (ex: ["ARCHI", "ATELIER"])

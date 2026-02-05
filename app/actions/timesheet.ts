@@ -8,7 +8,7 @@ export async function logTime(formData: FormData) {
   const projectId = formData.get("projectId") as string;
   const userId = formData.get("userId") as string;
   const dateStr = formData.get("date") as string;
-  const duration = parseFloat(formData.get("duration") as string);
+  const duration = parseFloat(formData.get("duration") as string) || 0;
 
   if (!projectId || !userId || !dateStr) return;
 

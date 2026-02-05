@@ -19,28 +19,6 @@ await prisma.client.create({
   revalidatePath("/crm");
 }
 
-// --- ACTIONS RH (MEMBRES) ---
-export async function createUser(formData: FormData) {
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const role = formData.get("role") as string;
-  if (!name || !email) return;
-  try {
-    await prisma.user.create({
-      data: {
-    name,
-    email,
-    role: role || "membre",
-    password: "temp_password_cobalt",
-    allowedEntities: "Aucune" // <--- Ajoutez cette ligne (ou mettez ["Cobalt"] selon votre logique)
-}
-    });
-    revalidatePath("/hr");
-  } catch (error) {
-    console.error("Erreur RH:", error);
-  }
-}
-
 // --- ACTIONS FINANCE (V2 : ÉDITION COMPLÈTE) ---
 export async function createQuickInvoice(formData: FormData) {
   const firstClient = await prisma.client.findFirst();
@@ -85,12 +63,20 @@ export async function updateInvoiceAction(formData: FormData) {
 // --- ACTIONS PROJETS (V2 : DEEP DIVE & KANBAN) ---
 export async function createProject(formData: FormData) {
   const title = formData.get("title") as string;
-  const type = formData.get("type") as string;
-  const priority = (formData.get("priority") as string) || "MEDIUM";
-  const clientId = formData.get("clientId") as string;
+  const entity = formData.get("entity") as string;
+  const clientName = formData.get("clientName") as string;
+  const dueDateStr = formData.get("dueDate") as string;
+
   if (!title) return;
+
   await prisma.project.create({
-    data: { title, status: "TODO" }
+    data: { 
+      title, 
+      status: "TODO",
+      entity: entity || "GLOBAL",
+      clientName: clientName || "",
+      dueDate: dueDateStr ? new Date(dueDateStr) : null
+    }
   });
   revalidatePath("/projects");
 }

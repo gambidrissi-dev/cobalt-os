@@ -23,7 +23,8 @@ export default async function HRPage() {
     const cleanEmail = currentUser.email.trim().toLowerCase();
     
     // 👑 GOD MODE : Ton email garde les pleins pouvoirs
-    if (cleanEmail === "gambi.drissi@icloud.com") {
+    const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    if (adminEmail && cleanEmail === adminEmail) {
         myRank = 1;
     } else {
         myRank = RANKS[currentUser.role]?.rank || 99;
