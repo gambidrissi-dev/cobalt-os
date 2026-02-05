@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { createQuickInvoice } from "@/app/actions";
+import { createQuickInvoice } from "@/app/actions/finance";
 import { Plus, FileText, FileDown } from "lucide-react";
 import Link from "next/link";
 import { getActiveEntity } from "@/app/actions/auth"; // On ajoute le filtrage par entité

@@ -19,9 +19,15 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
 *.pem
 
 # debug
@@ -29,6 +35,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -41,3 +48,9 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo

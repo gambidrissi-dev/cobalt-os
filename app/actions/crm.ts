@@ -1,43 +1,4 @@
 "use server";
 
-import { prisma } from "@/app/lib/prisma";
-import { revalidatePath } from "next/cache";
-
-export async function createClient(formData: FormData) {
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const type = formData.get("type") as string; // "PARTICULIER" ou "ENTREPRISE"
-  
-  // On récupère les entités cochées (ex: "ARCHI,ATELIER")
-  const entities = formData.getAll("entities") as string[]; 
-  const entityString = entities.join(","); 
-
-  if (!name) return;
-
-  await prisma.client.create({
-    data: {
-      name,
-      email: email || "",
-      type,
-      entity: entityString || "GLOBAL" // On stocke les entités liées
-    }
-  });
-
-  revalidatePath("/crm");
-}
-
-export async function deleteClient(clientId: string) {
-  // On vérifie s'il a des factures avant de supprimer (sécurité)
-  const client = await prisma.client.findUnique({
-    where: { id: clientId },
-    include: { invoices: true }
-  });
-
-  if (client && client.invoices.length > 0) {
-    // On ne supprime pas un client qui a des factures (ou on pourrait l'archiver)
-    return { error: "Impossible de supprimer un client facturé." };
-  }
-
-  await prisma.client.delete({ where: { id: clientId } });
-  revalidatePath("/crm");
-}
+// Re-export pour compatibilité pendant la migration
+export * from "@/app/modules/crm/actions";

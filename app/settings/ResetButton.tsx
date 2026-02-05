@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { resetDatabase } from "@/app/actions";
+import { resetDatabase } from "@/app/actions/system";
 import { Trash2, AlertTriangle, Loader2 } from "lucide-react";
 
 export function ResetButton() {
