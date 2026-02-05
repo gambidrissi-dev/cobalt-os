@@ -39,7 +39,8 @@ export async function createUser(formData: FormData) {
   const job = formData.get("job") as string;
   const title = formData.get("title") as string;
   const entities = formData.getAll("entities").map(e => e.toString());
-  const allowedEntities = entities.join(",");
+  // Si aucune entité n'est fournie (champ retiré du front), on applique les droits par défaut (3 micros)
+  const allowedEntities = entities.length > 0 ? entities.join(",") : "ARCHI,ATELIER,STUDIO";
 
   if (!name || !email) return;
 

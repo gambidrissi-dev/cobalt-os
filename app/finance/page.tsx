@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { createNextInvoice } from "@/app/actions/invoice";
+import { createQuickInvoice } from "@/app/actions";
 import { Plus, FileText, FileDown } from "lucide-react";
 import Link from "next/link";
 import { getActiveEntity } from "@/app/actions/auth"; // On ajoute le filtrage par entité
@@ -30,7 +30,7 @@ export default async function FinancePage() {
           <p className="text-gray-400">Suivi de la facturation et des revenus</p>
         </div>
         
-        <form action={createNextInvoice}>
+        <form action={createQuickInvoice}>
           <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2 group">
             <Plus size={18} className="group-hover:rotate-90 transition-transform" />
             Créer un brouillon

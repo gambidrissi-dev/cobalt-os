@@ -24,8 +24,16 @@ type ProjectUI = Omit<Project, 'dueDate' | 'createdAt' | 'updatedAt'> & {
 export default function ProjectList({ initialProjects, currentEntity }: { initialProjects: ProjectUI[], currentEntity: string }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Configuration des couleurs par entité (plus propre que des if/else en chaîne)
+  const ENTITY_COLORS: Record<string, string> = {
+    MEDIA: 'bg-purple-600',
+    ATELIER: 'bg-orange-500',
+    STUDIO: 'bg-emerald-600',
+    ARCHI: 'bg-blue-600'
+  };
+
   // Petit helper pour la couleur si elle n'est pas définie
-  const getColor = (p: ProjectUI) => p.color || (p.entity === 'MEDIA' ? 'bg-purple-600' : p.entity === 'ATELIER' ? 'bg-orange-500' : p.entity === 'STUDIO' ? 'bg-emerald-600' : 'bg-blue-500');
+  const getColor = (p: ProjectUI) => p.color || ENTITY_COLORS[p.entity] || 'bg-blue-500';
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

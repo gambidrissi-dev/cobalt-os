@@ -1,7 +1,7 @@
 import { prisma } from "@/app/lib/prisma";
 import { createUser, deleteUser } from "@/app/actions/hr";
 import { getCurrentUser } from "@/app/actions/auth"; 
-import { Users, UserPlus, Trash2, Edit3, Crown } from "lucide-react"; // AlertTriangle retiré
+import { Users, UserPlus, Trash2, Edit3, Crown } from "lucide-react";
 import Link from "next/link";
 
 const RANKS: Record<string, { label: string, color: string, border: string, rank: number }> = {
@@ -10,15 +10,6 @@ const RANKS: Record<string, { label: string, color: string, border: string, rank
   ASSOCIE: { label: "Associé", color: "text-purple-500", border: "border-purple-500", rank: 3 },
   SALARIE: { label: "Salarié / Collab", color: "text-blue-400", border: "border-blue-500/30", rank: 4 },
   STAGIAIRE: { label: "Stagiaire", color: "text-green-400", border: "border-green-500/30", rank: 5 },
-};
-
-const ENTITY_LABELS: Record<string, string> = {
-  GLOBAL: 'Collectif',
-  ARCHI: 'Micro Gambi',
-  ATELIER: 'Micro Lola',
-  STUDIO: 'Micro Lou-Ann',
-  MEDIA: 'Média',
-  ALL: 'Super Admin'
 };
 
 export default async function HRPage() {
@@ -96,20 +87,7 @@ export default async function HRPage() {
                 ))}
                 </select>
             </div>
-            <div className="flex flex-col space-y-1">
-                <label className="text-[10px] uppercase font-bold text-gray-500">Accès</label>
-                <div className="flex gap-2 items-center h-[38px] px-3 bg-white/5 rounded-lg border border-white/5">
-                    <label className="flex items-center gap-1 text-xs text-gray-300 cursor-pointer hover:text-white">
-                    <input type="checkbox" name="entities" value="ARCHI" className="accent-blue-500"/> Gambi
-                    </label>
-                    <label className="flex items-center gap-1 text-xs text-gray-300 cursor-pointer hover:text-white">
-                    <input type="checkbox" name="entities" value="ATELIER" className="accent-orange-500"/> Lola
-                    </label>
-                    <label className="flex items-center gap-1 text-xs text-gray-300 cursor-pointer hover:text-white">
-                    <input type="checkbox" name="entities" value="STUDIO" className="accent-emerald-500"/> Lou-Ann
-                    </label>
-                </div>
-            </div>
+
             <button type="submit" className="bg-white text-black font-bold px-6 py-2 rounded-lg hover:bg-gray-200 transition-colors h-[38px]">
                 Ajouter
             </button>
@@ -172,13 +150,6 @@ export default async function HRPage() {
                   {targetRankConfig.label}
                 </div>
 
-                <div className="flex justify-center gap-1 mt-3 flex-wrap">
-                  {(user.allowedEntities || "").split(',').filter(Boolean).map(e => (
-                    <span key={e} className="text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 border border-white/5">
-                      {ENTITY_LABELS[e] || e}
-                    </span>
-                  ))}
-                </div>
               </div>
             </div>
           );
