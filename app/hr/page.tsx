@@ -12,6 +12,15 @@ const RANKS: Record<string, { label: string, color: string, border: string, rank
   STAGIAIRE: { label: "Stagiaire", color: "text-green-400", border: "border-green-500/30", rank: 5 },
 };
 
+const ENTITY_LABELS: Record<string, string> = {
+  GLOBAL: 'Collectif',
+  ARCHI: 'Micro Gambi',
+  ATELIER: 'Micro Lola',
+  STUDIO: 'Micro Lou-Ann',
+  MEDIA: 'Média',
+  ALL: 'Super Admin'
+};
+
 export default async function HRPage() {
   const users = await prisma.user.findMany({ orderBy: { name: 'asc' } });
   const currentUser = await getCurrentUser();
@@ -89,12 +98,15 @@ export default async function HRPage() {
             </div>
             <div className="flex flex-col space-y-1">
                 <label className="text-[10px] uppercase font-bold text-gray-500">Accès</label>
-                <div className="flex gap-3 items-center h-[38px] px-3 bg-white/5 rounded-lg border border-white/5">
-                    <label className="flex items-center gap-1 text-xs text-gray-300 cursor-pointer">
-                    <input type="checkbox" name="entities" value="ARCHI" defaultChecked className="accent-blue-500"/> Archi
+                <div className="flex gap-2 items-center h-[38px] px-3 bg-white/5 rounded-lg border border-white/5">
+                    <label className="flex items-center gap-1 text-xs text-gray-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" name="entities" value="ARCHI" className="accent-blue-500"/> Gambi
                     </label>
-                    <label className="flex items-center gap-1 text-xs text-gray-300 cursor-pointer">
-                    <input type="checkbox" name="entities" value="ATELIER" className="accent-orange-500"/> Atelier
+                    <label className="flex items-center gap-1 text-xs text-gray-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" name="entities" value="ATELIER" className="accent-orange-500"/> Lola
+                    </label>
+                    <label className="flex items-center gap-1 text-xs text-gray-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" name="entities" value="STUDIO" className="accent-emerald-500"/> Lou-Ann
                     </label>
                 </div>
             </div>
@@ -163,7 +175,7 @@ export default async function HRPage() {
                 <div className="flex justify-center gap-1 mt-3 flex-wrap">
                   {(user.allowedEntities || "").split(',').filter(Boolean).map(e => (
                     <span key={e} className="text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 border border-white/5">
-                      {e === 'GLOBAL' ? 'COBALT' : e}
+                      {ENTITY_LABELS[e] || e}
                     </span>
                   ))}
                 </div>
