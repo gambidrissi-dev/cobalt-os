@@ -1,4 +1,5 @@
-// prisma/schema.prisma
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -9,65 +10,143 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// NOTE : Avec SQLite, on ne peut pas utiliser "enum".
-// On utilise String et on gère la logique dans le code.
+// --- CORE MODELS ---
 
 model User {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   name            String
-  email           String   @unique
+  email           String    @unique
   password        String
-  
-  role            String   @default("SALARIE") // HIÉRARCHIE : PRESIDENT, DG, ASSOCIE, SALARIE...
-  job             String   @default("Membre")  // MÉTIER : Architecte, Menuisier...
-  title           String?                      // TITRE : Fondateur, Associé... <--- AJOUT ICI
-  
+  role            String    // PRESIDENT, DG, ASSOCIE, SALARIE, STAGIAIRE
+  job             String?
+  title           String?
   avatar          String?
-  // Stocké comme texte "ARCHI,ATELIER"
-  allowedEntities String 
-  
-  assignedTasks   Task[]
-  borrowedItems   InventoryItem[]
-  
-  // --- AJOUT CORRECTIF ---
-  timeLogs        TimeLog[] // Relation nécessaire pour le Time Tracking
-  
-  createdAt       DateTime @default(now())
+  allowedEntities String?   // ex: "ARCHI,ATELIER" (Legacy/Simple Auth)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  companies       Company[] // Accès aux entreprises (Many-to-Many)
+  projects        Project[] // Chef de projet ou assigné
+  tasks           Task[]
+  timeLogs        TimeLog[]
+  files           File[]    @relation("FileOwner")
+  inventory       InventoryItem[]
 }
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String   // ex: "Micro Gambi"
+  code        String   @unique // ex: "ARCHI"
+  logo        String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations Multi-tenant
+  users       User[]
+  projects    Project[]
+  files       File[]
+  invoices    Invoice[]
+  clients     Client[]
+}
+
+// --- MODULES ---
 
 model Project {
   id          String   @id @default(cuid())
   title       String
-  entity      String   // ARCHI, ATELIER, SCI...
-  clientName  String
-  status      String   @default("IN_PROGRESS")
-  
+  status      String   // TODO, IN_PROGRESS, DONE
   phase       String?  // ESQ, APS, APD...
   budget      Float    @default(0)
+  description String?
+  notes       String?
+  driveLink   String?
+  dueDate     DateTime?
   
-  stockUsed   Boolean  @default(false)
+  // Multi-tenant
+  entity      String?  // Legacy string (ex: "ARCHI")
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id])
 
-  tasks       Task[]
-  wikiPages   WikiPage[]
-  invoices    Invoice[]
-  
-  // --- AJOUT CORRECTIF ---
-  timeLogs    TimeLog[] // Relation nécessaire pour le Time Tracking
-  
+  // Client
+  clientName  String?
+  clientId    String?
+  client      Client?  @relation(fields: [clientId], references: [id])
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Relations
+  tasks       Task[]
+  timeLogs    TimeLog[]
+  invoices    Invoice[]
+  wikiPages   WikiPage[]
+  files       File[]
 }
 
-model WikiPage {
+model File {
+  id                    String   @id @default(cuid())
+  name                  String
+  realPath              String   @map("chemin_reel")
+  size                  Int
+  mimeType              String
+  
+  isSharedWithCollective Boolean @default(false) @map("is_shared_with_collective")
+
+  ownerId               String   @map("owner_id")
+  owner                 User     @relation("FileOwner", fields: [ownerId], references: [id])
+
+  companyId             String?
+  company               Company? @relation(fields: [companyId], references: [id])
+
+  projectId             String?
+  project               Project? @relation(fields: [projectId], references: [id])
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Client {
+  id        String    @id @default(cuid())
+  name      String
+  email     String?
+  type      String?
+  entity    String?
+  companyId String?
+  company   Company?  @relation(fields: [companyId], references: [id])
+  invoices  Invoice[]
+  projects  Project[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Invoice {
   id        String   @id @default(cuid())
-  title     String
-  content   String   
-  
-  // --- AJOUTE LES "?" ICI ---
-  projectId String?    // <--- Ajoute le ?
-  project   Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade) // <--- Ajoute le ?
-  
+  number    String   @unique
+  status    String
+  totalHT   Float
+  dueDate   DateTime?
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id])
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+  entity    String?
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+  items     InvoiceItem[]
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  description String
+  quantity    Float
+  price       Float
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model Task {
@@ -78,62 +157,50 @@ model Task {
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   userId    String?
   user      User?    @relation(fields: [userId], references: [id])
-  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Client {
-  id        String    @id @default(cuid())
-  name      String
-  email     String?
-  type      String
-  entity    String    // ARCHI, ATELIER...
-  invoices  Invoice[]
-}
-
-model Invoice {
+model TimeLog {
   id        String   @id @default(cuid())
-  number    String   @unique
-  totalHT   Float
-  status    String   
-  dueDate   DateTime
-  
-  entity    String   // ARCHI, ATELIER...
-  
-  clientId  String
-  client    Client   @relation(fields: [clientId], references: [id])
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
-  
+  duration  Float
+  date      DateTime
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model InventoryItem {
   id          String    @id @default(cuid())
   name        String
   category    String
-  entity      String    // ARCHI, ATELIER...
-  status      String    
+  status      String
+  entity      String?
   borrowerId  String?
   borrower    User?     @relation(fields: [borrowerId], references: [id])
   returnDate  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
-// --- AJOUT POUR LE TIME TRACKING ---
-
-model TimeLog {
+model Service {
   id        String   @id @default(cuid())
-  duration  Float    // Durée en heures (ex: 1.5 pour 1h30)
-  date      DateTime // Date précise de la saisie
-  note      String?  // Commentaire optionnel (ex: "Réunion client")
-  
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id])
-  
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  price     Float
+  category  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
+model WikiPage {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
