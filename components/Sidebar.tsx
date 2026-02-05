@@ -47,8 +47,9 @@ export default function Sidebar({ currentEntity, currentUser }: { currentEntity:
   // Le split(',') transforme le texte "ARCHI,ATELIER" en tableau
   const allowedList = currentUser?.allowedEntities?.split(',') || [];
   
-  // Est-ce un Admin Global ?
-  const isSuperUser = allowedList.includes('GLOBAL');
+  // Est-ce un Super Admin qui voit TOUT (ex: le dev) ?
+  // On n'utilise plus 'GLOBAL' pour ça, car GLOBAL est maintenant un espace partagé
+  const isSuperUser = allowedList.includes('ALL');
 
   return (
     <div className="w-64 h-full bg-[#0A0A0C] border-r border-white/5 flex flex-col flex-shrink-0 transition-all duration-300">
@@ -71,7 +72,8 @@ export default function Sidebar({ currentEntity, currentUser }: { currentEntity:
             </div>
             
             {/* On affiche la flèche SEULEMENT si l'utilisateur a plusieurs choix */}
-            {(isSuperUser || allowedList.length > 1) && (
+            {/* Maintenant tout le monde a accès au moins à sa Micro + Media + Global, donc toujours > 1 */}
+            {(true) && (
                <ChevronsUpDown size={16} className="text-gray-500 group-hover:text-white" />
             )}
           </button>
@@ -85,8 +87,10 @@ export default function Sidebar({ currentEntity, currentUser }: { currentEntity:
               {Object.entries(ENTITIES).map(([key, data]) => {
                 
                 // --- FILTRE DU MENU ---
-                // Si pas SuperUser ET que l'entité n'est pas dans sa liste autorisée -> ON CACHE
-                if (!isSuperUser && !allowedList.includes(key)) {
+                // 1. Espaces Communs (Toujours visibles)
+                const isCommon = key === 'MEDIA' || key === 'GLOBAL';
+                // 2. Si pas SuperUser, pas dans sa liste, et pas commun -> ON CACHE
+                if (!isSuperUser && !allowedList.includes(key) && !isCommon) {
                   return null;
                 }
 

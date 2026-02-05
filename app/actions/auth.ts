@@ -104,8 +104,12 @@ export async function getActiveEntity() {
   if (!user) return "GLOBAL";
   const requestedEntity = cookieStore.get("cobalt_entity")?.value || "GLOBAL";
   const allowedEntities = user.allowedEntities.split(',');
-  const hasAccess = allowedEntities.includes("GLOBAL") || allowedEntities.includes(requestedEntity);
-  return hasAccess ? requestedEntity : (allowedEntities[0] || "ARCHI");
+  
+  // LOGIQUE 3 COMPTES : Accès à sa liste + GLOBAL + MEDIA
+  const hasAccess = allowedEntities.includes(requestedEntity) || ['GLOBAL', 'MEDIA'].includes(requestedEntity) || allowedEntities.includes('ALL');
+  
+  // Si l'entité demandée n'est pas permise, on renvoie vers GLOBAL par sécurité
+  return hasAccess ? requestedEntity : "GLOBAL";
 }
 
 export async function switchEntityAction(entity: string) {
@@ -113,7 +117,7 @@ export async function switchEntityAction(entity: string) {
   const user = await getCurrentUser();
   if (!user) return;
   const allowedEntities = user.allowedEntities.split(',');
-  if (allowedEntities.includes("GLOBAL") || allowedEntities.includes(entity)) {
+  if (allowedEntities.includes(entity) || ['GLOBAL', 'MEDIA'].includes(entity) || allowedEntities.includes('ALL')) {
     cookieStore.set("cobalt_entity", entity);
   }
   redirect("/"); 
