@@ -6,7 +6,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import Link from 'next/link';
-import { createProject } from '../actions/projects';
+import { createProject } from '../actions/project';
 // 1. IMPORT DU TYPE OFFICIEL PRISMA
 import { Project } from "@prisma/client";
 

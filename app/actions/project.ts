@@ -2,6 +2,28 @@
 
 import { prisma } from "@/app/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getActiveEntity } from "@/app/services/auth";
+
+export async function createProject(formData: FormData) {
+  const title = formData.get("title") as string;
+  const entity = formData.get("entity") as string;
+  const clientName = formData.get("clientName") as string;
+  const dueDateStr = formData.get("dueDate") as string;
+  const activeEntity = await getActiveEntity();
+
+  if (!title) return;
+
+  await prisma.project.create({
+    data: { 
+      title, 
+      status: "TODO",
+      entity: entity || activeEntity || "GLOBAL",
+      clientName: clientName || "",
+      dueDate: dueDateStr ? new Date(dueDateStr) : null
+    }
+  });
+  revalidatePath("/projects");
+}
 
 // 1. Ajouter une tâche rapide
 export async function addTask(formData: FormData) {

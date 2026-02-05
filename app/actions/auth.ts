@@ -1,4 +1,21 @@
 "use server";
 
-// Re-export pour compatibilité pendant la migration
-export * from "@/app/services/auth";
+import { 
+  loginAction, 
+  updatePasswordAction, 
+  createFirstAdmin, 
+  logoutAction, 
+  getCurrentUser, 
+  getActiveEntity, 
+  switchEntityAction 
+} from "@/app/services/auth";
+
+export { 
+  loginAction, 
+  updatePasswordAction, 
+  createFirstAdmin, 
+  logoutAction, 
+  getCurrentUser, 
+  getActiveEntity, 
+  switchEntityAction 
+};

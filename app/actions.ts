@@ -1,4 +1,3 @@
-"use server";
 
 // Ce fichier est déprécié.
 // Veuillez utiliser les actions modulaires :
