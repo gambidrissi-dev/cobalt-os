@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,20 +14,19 @@ model User {
   name            String
   email           String    @unique
   password        String
-  role            String    // 'admin' | 'guest' (Evolution du système de rôles)
+  role            String    // 'admin' | 'guest'
   job             String?
   title           String?
   avatar          String?
-  allowedEntities String?   // ex: "ARCHI,ATELIER" (Legacy/Simple Auth)
+  allowedEntities String?   // ex: "ARCHI,ATELIER"
   
-  organizationId  String?   // Lien direct vers l'organisation principale
+  organizationId  String?
   organization    Company?  @relation("UserOrganization", fields: [organizationId], references: [id])
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  // Relations
-  projects        Project[] // Chef de projet ou assigné
+  projects        Project[]
   tasks           Task[]
   timeLogs        TimeLog[]
   files           File[]    @relation("FileOwner")
@@ -40,28 +36,22 @@ model User {
   reservations    Reservation[]
 }
 
-// Correspond à la table "organizations" demandée
 model Company {
   id          String   @id @default(cuid())
-  name        String   // ex: "Micro Gambi"
-  code        String   @unique // ex: "ARCHI"
+  name        String
+  code        String   @unique
   logo        String?
-  
-  // Gestion Financière (Architect's Touch)
   balance     Float    @default(0)
-  isCollective Boolean @default(false) // True pour "Collectif Cobalt"
+  isCollective Boolean @default(false)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relations Multi-tenant
   primaryUsers User[]   @relation("UserOrganization")
   projects    Project[]
   files       File[]
   invoices    Invoice[]
   clients     Client[]
-  
-  // Transactions (Versements au collectif, etc.)
   txFrom      Transaction[] @relation("TxFrom")
   txTo        Transaction[] @relation("TxTo")
 }
@@ -71,15 +61,12 @@ model Transaction {
   amount      Float
   description String
   date        DateTime @default(now())
-  
   fromId      String?
   from        Company? @relation("TxFrom", fields: [fromId], references: [id])
-  
   toId        String?
   to          Company? @relation("TxTo", fields: [toId], references: [id])
-  
-  type        String   // 'CONTRIBUTION', 'PAYMENT', 'TRANSFER'
-  status      String   // 'PENDING', 'COMPLETED'
+  type        String
+  status      String
 }
 
 // --- MODULES ---
@@ -87,28 +74,21 @@ model Transaction {
 model Project {
   id          String   @id @default(cuid())
   title       String
-  status      String   // TODO, IN_PROGRESS, DONE
-  phase       String?  // ESQ, APS, APD...
+  status      String
+  phase       String?
   budget      Float    @default(0)
   description String?
   notes       String?
   driveLink   String?
   dueDate     DateTime?
-  
-  // Multi-tenant
-  entity      String?  // Legacy string (ex: "ARCHI")
+  entity      String?
   companyId   String?
   company     Company? @relation(fields: [companyId], references: [id])
-
-  // Client
   clientName  String?
   clientId    String?
   client      Client?  @relation(fields: [clientId], references: [id])
-
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  // Relations
   tasks       Task[]
   timeLogs    TimeLog[]
   invoices    Invoice[]
@@ -120,25 +100,18 @@ model Project {
 model File {
   id                    String   @id @default(cuid())
   name                  String
-  path                  String   @map("chemin_reel") // Renommé pour matcher la demande
+  path                  String   @map("chemin_reel")
   size                  Int
   mimeType              String
-  
-  // Correspond à is_public dans la demande (partagé au sein de l'OS)
   isPublic              Boolean @default(false) @map("is_public")
-
   ownerId               String   @map("owner_id")
   owner                 User     @relation("FileOwner", fields: [ownerId], references: [id])
-
   companyId             String?
   company               Company? @relation(fields: [companyId], references: [id])
-
   projectId             String?
   project               Project? @relation(fields: [projectId], references: [id])
-
   socialPostId          String?
   socialPost            SocialPost? @relation(fields: [socialPostId], references: [id])
-
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
@@ -149,7 +122,7 @@ model Event {
   start       DateTime
   end         DateTime?
   allDay      Boolean  @default(false)
-  isShared    Boolean  @default(false) // Visible par tout le collectif
+  isShared    Boolean  @default(false)
   createdAt   DateTime @default(now())
 }
 
@@ -241,55 +214,6 @@ model Service {
   updatedAt DateTime @updatedAt
 }
 
-// --- COBALT MEDIA ---
-
-model MediaScript {
-  id          String   @id @default(cuid())
-  title       String
-  content     String?  // Markdown content for scripts/ideation
-  status      String   // DRAFT, REVIEW, APPROVED
-  
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id])
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model SocialPost {
-  id          String   @id @default(cuid())
-  content     String?  // Caption or post content
-  platform    String   // YOUTUBE, INSTAGRAM, LINKEDIN
-  status      String   // DRAFT, SCHEDULED, PUBLISHED
-  scheduledFor DateTime?
-  
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id])
-  
-  files       File[]   // Assets linked to the post
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-// --- COLLECTIVE (RESERVATIONS) ---
-
-model Reservation {
-  id          String   @id @default(cuid())
-  startDate   DateTime
-  endDate     DateTime
-  status      String   // PENDING, CONFIRMED, COMPLETED
-  
-  itemId      String
-  item        InventoryItem @relation(fields: [itemId], references: [id])
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
 model WikiPage {
   id        String   @id @default(cuid())
   title     String
@@ -298,4 +222,43 @@ model WikiPage {
   project   Project? @relation(fields: [projectId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// --- COBALT MEDIA ---
+
+model MediaScript {
+  id          String   @id @default(cuid())
+  title       String
+  content     String?
+  status      String
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SocialPost {
+  id          String   @id @default(cuid())
+  content     String?
+  platform    String
+  status      String
+  scheduledFor DateTime?
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  files       File[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Reservation {
+  id          String   @id @default(cuid())
+  startDate   DateTime
+  endDate     DateTime
+  status      String
+  itemId      String
+  item        InventoryItem @relation(fields: [itemId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

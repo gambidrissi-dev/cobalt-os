@@ -8,75 +8,44 @@ import bcrypt from "bcryptjs";
 
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 
-// 1. SE CONNECTER
 export async function loginAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-
   const user = await prisma.user.findUnique({ where: { email } });
 
-  // Sécurité : On vérifie si l'user existe ET si le hash correspond
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return { error: "Identifiants incorrects" };
   }
 
   const expires = new Date(Date.now() + SESSION_DURATION);
   const cookieStore = await cookies();
+  cookieStore.set("cobalt_session", user.id, { httpOnly: true, secure: process.env.NODE_ENV === "production", expires, sameSite: "lax", path: "/" });
   
-  cookieStore.set("cobalt_session", user.id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    expires,
-    sameSite: "lax",
-    path: "/",
-  });
-
-  // Gestion entité par défaut
   const defaultEntity = user.allowedEntities?.split(',')[0] || "GLOBAL";
   cookieStore.set("cobalt_entity", defaultEntity);
-
   redirect("/");
 }
 
-// 2. UPDATE PASSWORD (HASHAGE)
 export async function updatePasswordAction(formData: FormData) {
   const currentPassword = formData.get("currentPassword") as string;
   const newPassword = formData.get("newPassword") as string;
-  
   const user = await getCurrentUser();
   
-  // Vérification de l'ancien mot de passe haché
   if (!user || !(await bcrypt.compare(currentPassword, user.password))) {
      return { error: "Mot de passe actuel incorrect" };
   }
-
-  // Hachage du nouveau mot de passe
   const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-  await prisma.user.update({ 
-    where: { id: user.id }, 
-    data: { password: hashedPassword } 
-  });
-  
+  await prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword } });
   revalidatePath("/profile");
   redirect("/");
 }
 
-// 3. SETUP FIRST ADMIN (HASHAGE)
 export async function createFirstAdmin(formData: FormData) {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
-  
-  // On hache le mot de passe par défaut
   const hashedPassword = await bcrypt.hash("cobalt123", 10);
-
   await prisma.user.create({
-    data: {
-      name, email, 
-      password: hashedPassword, 
-      role: "PRESIDENT", job: "Fondateur", title: "Fondateur",
-      allowedEntities: "ARCHI,ATELIER,GLOBAL"
-    }
+    data: { name, email, password: hashedPassword, role: "PRESIDENT", job: "Fondateur", title: "Fondateur", allowedEntities: "ARCHI,ATELIER,GLOBAL" }
   });
   redirect("/login");
 }
@@ -101,11 +70,7 @@ export async function getActiveEntity() {
   if (!user) return "GLOBAL";
   const requestedEntity = cookieStore.get("cobalt_entity")?.value || "GLOBAL";
   const allowedEntities = user.allowedEntities?.split(',') || [];
-  
-  // LOGIQUE 3 COMPTES : Accès à sa liste + GLOBAL + MEDIA
   const hasAccess = allowedEntities.includes(requestedEntity) || ['GLOBAL', 'MEDIA'].includes(requestedEntity) || allowedEntities.includes('ALL');
-  
-  // Si l'entité demandée n'est pas permise, on renvoie vers GLOBAL par sécurité
   return hasAccess ? requestedEntity : "GLOBAL";
 }
 

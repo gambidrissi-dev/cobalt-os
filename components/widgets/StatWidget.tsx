@@ -1,13 +1,5 @@
 import { LucideIcon } from "lucide-react";
-
-interface StatWidgetProps {
-  title: string;
-  value: string | number;
-  icon: LucideIcon;
-  trend?: string; // ex: "+12%"
-  color?: string; // ex: "text-blue-500"
-}
-
+interface StatWidgetProps { title: string; value: string | number; icon: LucideIcon; trend?: string; color?: string; }
 export function StatWidget({ title, value, icon: Icon, trend, color = "text-white" }: StatWidgetProps) {
   return (
     <div className="bg-[#141416] p-6 rounded-2xl border border-white/5 flex items-start justify-between">
