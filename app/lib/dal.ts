@@ -1,5 +1,5 @@
 import { prisma } from "@/app/lib/prisma";
-import { getActiveEntity } from "@/app/services/auth";
+import { getActiveEntity } from "@/app/actions/auth";
 
 /**
  * DATA ACCESS LAYER (DAL)
