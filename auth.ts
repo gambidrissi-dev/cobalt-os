@@ -32,7 +32,7 @@ export async function loginAction(formData: FormData) {
   });
 
   // Gestion entité par défaut
-  const defaultEntity = user.allowedEntities.split(',')[0] || "GLOBAL";
+  const defaultEntity = user.allowedEntities?.split(',')[0] || "GLOBAL";
   cookieStore.set("cobalt_entity", defaultEntity);
 
   redirect("/");
@@ -100,7 +100,7 @@ export async function getActiveEntity() {
   const user = await getCurrentUser();
   if (!user) return "GLOBAL";
   const requestedEntity = cookieStore.get("cobalt_entity")?.value || "GLOBAL";
-  const allowedEntities = user.allowedEntities.split(',');
+  const allowedEntities = user.allowedEntities?.split(',') || [];
   
   // LOGIQUE 3 COMPTES : Accès à sa liste + GLOBAL + MEDIA
   const hasAccess = allowedEntities.includes(requestedEntity) || ['GLOBAL', 'MEDIA'].includes(requestedEntity) || allowedEntities.includes('ALL');
@@ -113,7 +113,7 @@ export async function switchEntityAction(entity: string) {
   const cookieStore = await cookies();
   const user = await getCurrentUser();
   if (!user) return;
-  const allowedEntities = user.allowedEntities.split(',');
+  const allowedEntities = user.allowedEntities?.split(',') || [];
   if (allowedEntities.includes(entity) || ['GLOBAL', 'MEDIA'].includes(entity) || allowedEntities.includes('ALL')) {
     cookieStore.set("cobalt_entity", entity);
   }
