@@ -35,6 +35,9 @@ model User {
   timeLogs        TimeLog[]
   files           File[]    @relation("FileOwner")
   inventory       InventoryItem[]
+  mediaScripts    MediaScript[]
+  socialPosts     SocialPost[]
+  reservations    Reservation[]
 }
 
 // Correspond à la table "organizations" demandée
@@ -133,6 +136,9 @@ model File {
   projectId             String?
   project               Project? @relation(fields: [projectId], references: [id])
 
+  socialPostId          String?
+  socialPost            SocialPost? @relation(fields: [socialPostId], references: [id])
+
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
@@ -221,6 +227,7 @@ model InventoryItem {
   borrowerId  String?
   borrower    User?     @relation(fields: [borrowerId], references: [id])
   returnDate  DateTime?
+  reservations Reservation[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -232,6 +239,55 @@ model Service {
   category  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// --- COBALT MEDIA ---
+
+model MediaScript {
+  id          String   @id @default(cuid())
+  title       String
+  content     String?  // Markdown content for scripts/ideation
+  status      String   // DRAFT, REVIEW, APPROVED
+  
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SocialPost {
+  id          String   @id @default(cuid())
+  content     String?  // Caption or post content
+  platform    String   // YOUTUBE, INSTAGRAM, LINKEDIN
+  status      String   // DRAFT, SCHEDULED, PUBLISHED
+  scheduledFor DateTime?
+  
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  
+  files       File[]   // Assets linked to the post
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- COLLECTIVE (RESERVATIONS) ---
+
+model Reservation {
+  id          String   @id @default(cuid())
+  startDate   DateTime
+  endDate     DateTime
+  status      String   // PENDING, CONFIRMED, COMPLETED
+  
+  itemId      String
+  item        InventoryItem @relation(fields: [itemId], references: [id])
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model WikiPage {

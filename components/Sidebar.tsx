@@ -5,7 +5,8 @@ import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, FolderKanban, Briefcase, 
   DollarSign, Package, BookOpen, ChevronsUpDown,
-  Clock, Users, LogOut, Settings 
+  Clock, Users, LogOut, Settings,
+  Calendar, PenTool, Image, BarChart, Send
 } from 'lucide-react';
 import { useState } from 'react';
 import { switchEntityAction, logoutAction } from '@/app/actions/auth'; 
@@ -20,18 +21,6 @@ const ENTITIES = {
   // L'ESPACE COMMUN
   MEDIA: { label: 'Cobalt Média (Collectif)', color: 'bg-purple-600 text-white', border: 'border-purple-600' },
 };
-
-// ... (Garde la constante MENU telle quelle) ...
-const MENU = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
-  { icon: FolderKanban, label: 'Projets', href: '/projects' },
-  { icon: Clock, label: 'Feuille de Temps', href: '/timesheet' },
-  { icon: Users, label: 'Équipe RH', href: '/hr' }, 
-  { icon: BookOpen, label: 'Savoir (Wiki)', href: '/wiki' },
-  { icon: Briefcase, label: 'Clients', href: '/crm' },
-  { icon: DollarSign, label: 'Finance', href: '/finance' },
-  { icon: Package, label: 'Matériel', href: '/inventory' }, 
-];
 
 export default function Sidebar({ currentEntity, currentUser }: { currentEntity: string, currentUser: any }) {
   const pathname = usePathname();
@@ -50,6 +39,38 @@ export default function Sidebar({ currentEntity, currentUser }: { currentEntity:
   // Est-ce un Super Admin qui voit TOUT (ex: le dev) ?
   // On n'utilise plus 'GLOBAL' pour ça, car GLOBAL est maintenant un espace partagé
   const isSuperUser = allowedList.includes('ALL');
+
+  // --- DÉFINITION DES MENUS CONTEXTUELS ---
+  let menuItems = [];
+
+  if (currentEntity === 'MEDIA') {
+    // ESPACE MÉDIA (Production)
+    menuItems = [
+      { icon: Calendar, label: 'Calendrier', href: '/media/calendar' },
+      { icon: PenTool, label: 'Studio & Scripts', href: '/media/studio' },
+      { icon: Image, label: 'Assets & Brand', href: '/media/assets' },
+      { icon: BarChart, label: 'Analytics', href: '/media/analytics' },
+      { icon: Send, label: 'Publication', href: '/media/publish' },
+      { icon: Package, label: 'Matériel Média', href: '/inventory' },
+    ];
+  } else if (currentEntity === 'GLOBAL') {
+    // ESPACE COLLECTIF (Admin & RH)
+    menuItems = [
+      { icon: LayoutDashboard, label: 'Vue Consolidée', href: '/' },
+      { icon: Users, label: 'Équipe RH', href: '/hr' },
+      { icon: BookOpen, label: 'Savoir (Wiki)', href: '/wiki' },
+      { icon: Package, label: 'Inventaire Global', href: '/inventory' },
+    ];
+  } else {
+    // ESPACE PRIVÉ (Micro-Entreprise)
+    menuItems = [
+      { icon: LayoutDashboard, label: 'Mon Dashboard', href: '/' },
+      { icon: FolderKanban, label: 'Mes Projets', href: '/projects' },
+      { icon: Briefcase, label: 'Mes Clients', href: '/crm' },
+      { icon: DollarSign, label: 'Ma Finance', href: '/finance' },
+      { icon: Clock, label: 'Feuille de Temps', href: '/timesheet' },
+    ];
+  }
 
   return (
     <div className="w-64 h-full bg-[#0A0A0C] border-r border-white/5 flex flex-col flex-shrink-0 transition-all duration-300">
@@ -117,17 +138,7 @@ export default function Sidebar({ currentEntity, currentUser }: { currentEntity:
       <nav className="flex-1 px-4 space-y-1 mt-2 overflow-y-auto">
         <p className="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 mt-4">Menu Principal</p>
         
-        {MENU.map((item) => {
-          // 1. Si on est sur le COLLECTIF (GLOBAL), on ne veut que le Dashboard et les RH
-          // "uniquement une page dashboard reunissant les chiffres ... et la partie RH"
-          if (currentEntity === 'GLOBAL' && !['/', '/hr'].includes(item.href)) {
-            return null;
-          }
-
-          // 2. L'inventaire est masqué sur le Global (déjà géré au dessus), mais on l'affiche ailleurs
-          if (item.href === '/inventory' && currentEntity === 'GLOBAL') {
-            return null;
-          }
+        {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link 
