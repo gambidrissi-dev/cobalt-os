@@ -2,7 +2,7 @@
 
 import { prisma } from "@/app/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { getActiveEntity } from "@/app/services/auth";
+import { getActiveEntity } from "@/app/actions/auth";
 
 export async function createProject(formData: FormData) {
   const title = formData.get("title") as string;
