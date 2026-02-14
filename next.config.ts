@@ -1,15 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* On désactive le compiler expérimental pour l'instant */
-  /* experimental: {
-    reactCompiler: true,
-  }, */
+  // Supprime la clé "eslint" directe ici
+  // Elle est maintenant gérée via les fichiers de config ESLint séparés
+  // ou via la CLI.
   
-  // Optionnel : ignore ESLint si tu as encore des erreurs de modules non trouvés
-  eslint: {
-    ignoreDuringBuilds: true, 
-  }
+  experimental: {
+    // Si tu veux utiliser Turbopack et le compiler
+    // assure-tu d'avoir installé les plugins nécessaires
+  },
 };
 
 export default nextConfig;
