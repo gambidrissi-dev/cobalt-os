@@ -1,10 +1,16 @@
-import { PrismaClient } from "@prisma/client";
+// lib/prisma.ts
+import { PrismaClient } from '@prisma/client'
 
-// Ce fichier évite de créer trop de connexions à la base de données
-// lors du rechargement à chaud (Hot Reload) en développement.
+const prismaClientSingleton = () => {
+  return new PrismaClient()
+}
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+declare global {
+  var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>
+}
 
-export const prisma = globalForPrisma.prisma || new PrismaClient();
+const prisma = globalThis.prismaGlobal ?? prismaClientSingleton()
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+export default prisma
+
+if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = prisma
