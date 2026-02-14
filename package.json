@@ -13,16 +13,17 @@
   },
   "dependencies": {
     "@prisma/client": "^7.4.0",
-    "bcryptjs": "^2.4.3",
-    "lucide-react": "^0.475.0",
+    "bcryptjs": "^3.0.3",
+    "lucide-react": "^0.564.0",
     "next": "15.1.7",
     "next-auth": "^4.24.11",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@auth/prisma-adapter": "^2.7.4",
+    "@auth/prisma-adapter": "^2.11.1",
     "@prisma/config": "^7.4.0",
+    "@tailwindcss/postcss": "^4.1.18",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.17.19",
     "@types/react": "^19.0.8",
@@ -32,7 +33,7 @@
     "eslint-config-next": "15.1.7",
     "postcss": "^8.5.2",
     "prisma": "^7.4.0",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   },
