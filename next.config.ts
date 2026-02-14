@@ -1,14 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Supprime la clé "eslint" directe ici
-  // Elle est maintenant gérée via les fichiers de config ESLint séparés
-  // ou via la CLI.
-  
-  experimental: {
-    // Si tu veux utiliser Turbopack et le compiler
-    // assure-tu d'avoir installé les plugins nécessaires
-  },
+  // Supprime la clé "eslint" si elle y est encore
+  typescript: {
+    // Si tu veux forcer le build malgré l'erreur TypeScript (déconseillé mais débloquant)
+    ignoreBuildErrors: false, 
+  }
 };
 
 export default nextConfig;
