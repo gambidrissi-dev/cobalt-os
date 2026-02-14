@@ -1,5 +1,5 @@
 {
-  "name": "erp-architectes",
+  "name": "cobalt-os",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -35,5 +35,8 @@
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   }
 }
